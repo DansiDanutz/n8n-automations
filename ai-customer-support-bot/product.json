@@ -1,0 +1,25 @@
+{
+  "name": "AI Customer Support Bot",
+  "description": "Intelligent customer support automation that connects to email, Telegram, and Slack. Uses OpenAI to auto-respond to common questions and escalates complex issues to humans. Reduces support workload by 70% while maintaining customer satisfaction.",
+  "price": 49.99,
+  "category": "automation",
+  "tags": ["ai", "support", "chatbot", "email", "telegram", "slack", "automation", "customer-service"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "Multi-platform support (Email, Telegram, Slack)",
+    "OpenAI-powered intelligent responses",
+    "Smart escalation to human agents",
+    "Customizable response templates",
+    "Analytics dashboard",
+    "Easy setup with n8n workflow"
+  ],
+  "requirements": {
+    "n8n": ">=0.190.0",
+    "node": ">=16.0.0",
+    "openai_api": "required",
+    "email_account": "recommended",
+    "telegram_bot_token": "optional",
+    "slack_app": "optional"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Smart Lead Nurture",
+  "slug": "smart-lead-nurture",
+  "version": "1.0.0",
+  "description": "AI-powered lead scoring and automated nurture sequences. Captures leads via webhook, scores them with GPT-4o, segments into hot/warm/cold, and triggers personalized follow-ups.",
+  "category": "sales-automation",
+  "tags": ["n8n", "ai", "leads", "sales", "automation", "email", "slack"],
+  "price": 29.99,
+  "currency": "USD",
+  "author": {
+    "name": "MyWork-AI",
+    "email": "support@mywork-ai.dev"
+  },
+  "requirements": {
+    "mywork_ai": ">=2.3.0",
+    "n8n": ">=1.0.0",
+    "services": ["openai", "smtp"],
+    "optional_services": ["slack", "crm"]
+  },
+  "files": {
+    "workflow": "src/workflow.json",
+    "docs": "docs/",
+    "config": ".env.example"
+  },
+  "screenshots": [
+    "assets/workflow-overview.png",
+    "assets/ai-scoring-demo.png",
+    "assets/slack-alert-example.png"
+  ],
+  "demo_url": "https://smart-lead-nurture.demo.mywork-ai.dev",
+  "repo_access": {
+    "type": "github",
+    "visibility": "private",
+    "grant_on_purchase": true
+  }
+}

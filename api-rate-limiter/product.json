@@ -1,0 +1,19 @@
+{
+  "name": "API Rate Limiter",
+  "description": "A production-ready API rate limiting service with Redis-backed sliding window, IP and API key tracking, customizable limits per endpoint, real-time analytics dashboard, and webhook alerts. Drop it in front of any API to prevent abuse.",
+  "price": 24.99,
+  "category": "backend",
+  "tags": ["api", "rate-limiting", "redis", "security", "middleware", "backend"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "Sliding window rate limiting algorithm",
+    "Per-IP and per-API-key tracking",
+    "Customizable limits per endpoint",
+    "Real-time analytics dashboard",
+    "Redis-backed for high performance",
+    "Webhook alerts on limit breaches",
+    "Docker-ready deployment",
+    "FastAPI middleware — drop into any project"
+  ]
+}

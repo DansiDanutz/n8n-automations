@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "voice-ai-platform",
+    "request_id": "474d7cd5-fe4d-4a69-a599-28d0705501c9",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/474d7cd5-fe4d-4a69-a599-28d0705501c9/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/474d7cd5-fe4d-4a69-a599-28d0705501c9"
+  },
+  {
+    "slug": "ai-customer-support-bot",
+    "request_id": "69ca30aa-0f70-4968-a556-72f53a32c2ee",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/69ca30aa-0f70-4968-a556-72f53a32c2ee/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/69ca30aa-0f70-4968-a556-72f53a32c2ee"
+  },
+  {
+    "slug": "ai-email-assistant",
+    "request_id": "7f3cb95c-9553-4db7-9281-b8e79ee25c82",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/7f3cb95c-9553-4db7-9281-b8e79ee25c82/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/7f3cb95c-9553-4db7-9281-b8e79ee25c82"
+  },
+  {
+    "slug": "invoice-generator-api",
+    "request_id": "d83fcb11-3426-4531-aaed-d6d210ebf0e1",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/d83fcb11-3426-4531-aaed-d6d210ebf0e1/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/d83fcb11-3426-4531-aaed-d6d210ebf0e1"
+  },
+  {
+    "slug": "appointment-booking-system",
+    "request_id": "5722483c-a77d-4379-bfe4-393db515b80f",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/5722483c-a77d-4379-bfe4-393db515b80f/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/5722483c-a77d-4379-bfe4-393db515b80f"
+  },
+  {
+    "slug": "ai-seo-content-generator",
+    "request_id": "e112fc89-dde2-4c25-8c5f-bab712ad4a87",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/e112fc89-dde2-4c25-8c5f-bab712ad4a87/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/e112fc89-dde2-4c25-8c5f-bab712ad4a87"
+  },
+  {
+    "slug": "social-media-auto-poster",
+    "request_id": "9ddea62a-c04c-463f-bec7-2e54008430ea",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/9ddea62a-c04c-463f-bec7-2e54008430ea/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/9ddea62a-c04c-463f-bec7-2e54008430ea"
+  },
+  {
+    "slug": "webhook-relay-logger",
+    "request_id": "afa70b82-3a91-4137-9b6c-a94f760e829a",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/afa70b82-3a91-4137-9b6c-a94f760e829a/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/afa70b82-3a91-4137-9b6c-a94f760e829a"
+  },
+  {
+    "slug": "smart-lead-nurture",
+    "request_id": "aa297322-9148-49b2-aa93-7e74c0894349",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/aa297322-9148-49b2-aa93-7e74c0894349/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/aa297322-9148-49b2-aa93-7e74c0894349"
+  },
+  {
+    "slug": "api-rate-limiter",
+    "request_id": "d3d36477-f29e-4ec3-a9ac-e1d06f3e9733",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/d3d36477-f29e-4ec3-a9ac-e1d06f3e9733/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/d3d36477-f29e-4ec3-a9ac-e1d06f3e9733"
+  },
+  {
+    "slug": "ai-document-summarizer",
+    "request_id": "a967dc0d-9a4e-484b-a9a8-c5860d3b2e1d",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/a967dc0d-9a4e-484b-a9a8-c5860d3b2e1d/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/a967dc0d-9a4e-484b-a9a8-c5860d3b2e1d"
+  },
+  {
+    "slug": "cron-job-dashboard",
+    "request_id": "bc912dfc-d7e8-4f51-a2be-045c79ca32b0",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/bc912dfc-d7e8-4f51-a2be-045c79ca32b0/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/bc912dfc-d7e8-4f51-a2be-045c79ca32b0"
+  },
+  {
+    "slug": "sports-ai",
+    "request_id": "1d450ccb-ec43-49dc-adc7-c92f63dfcc06",
+    "status_url": "https://queue.fal.run/fal-ai/minimax/requests/1d450ccb-ec43-49dc-adc7-c92f63dfcc06/status",
+    "response_url": "https://queue.fal.run/fal-ai/minimax/requests/1d450ccb-ec43-49dc-adc7-c92f63dfcc06"
+  }
+]

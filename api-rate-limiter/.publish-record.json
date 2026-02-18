@@ -1,0 +1,11 @@
+{
+    "slug": "api-rate-limiter",
+    "name": "API Rate Limiter",
+    "price": 24.99,
+    "published_at": "2026-02-17T02:16:14Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/api-rate-limiter.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/api-rate-limiter.tar.gz",
+    "stripe_product_id": "prod_Tzd5WIt6XVfJxs",
+    "stripe_price_id": "price_1T1dpg2LiKdy4qct9DSUGTia",
+    "marketplace_id": "0d06f288-09af-4778-ab91-e99645902c89"
+}

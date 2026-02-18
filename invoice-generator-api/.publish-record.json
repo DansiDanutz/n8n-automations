@@ -1,0 +1,11 @@
+{
+    "slug": "invoice-generator-api",
+    "name": "Invoice Generator API",
+    "price": 39.99,
+    "published_at": "2026-02-17T02:19:29Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/invoice-generator-api.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/invoice-generator-api.tar.gz",
+    "stripe_product_id": "prod_Tzd9sMP72ERSiS",
+    "stripe_price_id": "price_1T1dsq2LiKdy4qctzWOEcdnA",
+    "marketplace_id": "45ad9e0e-4027-4a11-b77d-527550bb39d7"
+}

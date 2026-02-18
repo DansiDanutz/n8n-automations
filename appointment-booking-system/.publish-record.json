@@ -1,0 +1,11 @@
+{
+    "slug": "appointment-booking-system",
+    "name": "Appointment Booking System",
+    "price": 29.99,
+    "published_at": "2026-02-17T02:19:39Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/appointment-booking-system.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/appointment-booking-system.tar.gz",
+    "stripe_product_id": "prod_Tzd9blLtyknoKW",
+    "stripe_price_id": "price_1T1dsz2LiKdy4qctGUUcntok",
+    "marketplace_id": "a6fb2d03-0e7a-4e1f-8a21-39795bdc161a"
+}

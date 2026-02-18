@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Rate Limiter — Setup Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
+        .cover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 80px 40px; text-align: center; }
+        .cover h1 { font-size: 2.8rem; margin-bottom: 10px; }
+        .cover .tagline { font-size: 1.3rem; opacity: 0.9; margin-bottom: 20px; }
+        .cover .price { font-size: 1.5rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 8px 24px; border-radius: 30px; }
+        .cover .meta { margin-top: 20px; opacity: 0.7; font-size: 0.9rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        h2 { color: #667eea; font-size: 1.8rem; margin: 50px 0 20px; padding-bottom: 10px; border-bottom: 2px solid #e8ecf1; }
+        h3 { color: #333; font-size: 1.3rem; margin: 30px 0 15px; }
+        p { margin-bottom: 15px; color: #444; }
+        ul { margin: 10px 0 20px 25px; }
+        li { margin: 5px 0; }
+        .step { background: white; border: 1px solid #e8ecf1; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .step-num { background: #667eea; color: white; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }
+        .step h3 { display: inline; vertical-align: middle; margin: 0; }
+        code { background: #f0f2f5; padding: 2px 8px; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; }
+        pre { background: #1a1a2e; color: #e8ecf1; padding: 20px; border-radius: 10px; overflow-x: auto; margin: 15px 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { background: #667eea; color: white; padding: 12px 16px; text-align: left; }
+        td { padding: 12px 16px; border-bottom: 1px solid #e8ecf1; }
+        tr:hover td { background: #f8f9ff; }
+        .badge { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin: 2px; }
+        .tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem; margin: 2px; }
+        .endpoint { background: #f8f9ff; border: 1px solid #e0e4ff; border-radius: 10px; padding: 20px; margin: 15px 0; }
+        .method { display: inline-block; padding: 3px 10px; border-radius: 5px; font-weight: bold; font-size: 0.85rem; color: white; margin-right: 8px; }
+        .method-get { background: #4caf50; }
+        .method-post { background: #2196f3; }
+        .method-put { background: #ff9800; }
+        .method-delete { background: #f44336; }
+        .method-patch { background: #9c27b0; }
+        .tip { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+        .warning { background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+        .toc { background: white; border: 1px solid #e8ecf1; border-radius: 12px; padding: 25px; margin: 30px 0; }
+        .toc a { color: #667eea; text-decoration: none; display: block; padding: 5px 0; }
+        .toc a:hover { text-decoration: underline; }
+        .footer { text-align: center; padding: 40px; color: #888; font-size: 0.9rem; border-top: 1px solid #e8ecf1; margin-top: 60px; }
+        @media print { .cover { padding: 60px 20px; } }
+        @media (max-width: 600px) { .cover h1 { font-size: 2rem; } }
+    </style>
+</head>
+<body>
+    <div class="cover">
+        <h1>API Rate Limiter</h1>
+        <p class="tagline">A production-ready API rate limiting service with Redis-backed sliding window, IP and API key tracking, customizable limits per endpoint, real-time an</p>
+        <span class="price">$24.99</span>
+        <p class="meta">v1.0.0 • Setup Guide • February 2026 • MyWork-AI</p>
+    </div>
+    <div class="container">
+        <div class="toc">
+            <h3>📖 Table of Contents</h3>
+            <a href="#overview">1. Overview</a>
+            <a href="#quickstart">2. Quick Start (5 minutes)</a>
+            <a href="#config">3. Configuration</a>
+            <a href="#api">4. API Reference</a>
+            <a href="#docker">5. Docker Deployment</a>
+            <a href="#troubleshooting">6. Troubleshooting</a>
+        </div>
+
+        <h2 id="overview">1. Overview</h2>
+        <p>A production-ready API rate limiting service with Redis-backed sliding window, IP and API key tracking, customizable limits per endpoint, real-time analytics dashboard, and webhook alerts. Drop it in front of any API to prevent abuse.</p>
+        <h3>Tech Stack</h3>
+        <p><span class="badge">Python</span> <span class="badge">FastAPI</span> <span class="badge">Docker</span></p>
+        <h3>Features</h3>
+        <ul><li>Sliding window rate limiting algorithm</li>
+<li>Per-IP and per-API-key tracking</li>
+<li>Customizable limits per endpoint</li>
+<li>Real-time analytics dashboard</li>
+<li>Redis-backed for high performance</li>
+<li>Webhook alerts on limit breaches</li>
+<li>Docker-ready deployment</li>
+<li>FastAPI middleware — drop into any project</li></ul>
+        <h3>Tags</h3>
+        <p><span class="tag">api</span> <span class="tag">rate-limiting</span> <span class="tag">redis</span> <span class="tag">security</span> <span class="tag">middleware</span> <span class="tag">backend</span></p>
+
+        <h2 id="quickstart">2. Quick Start</h2>
+        <div class="step">
+            <span class="step-num">1</span><h3>Extract the package</h3>
+            <pre><code>tar -xzf api-rate-limiter.tar.gz
+cd api-rate-limiter/</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">2</span><h3>Configure environment</h3>
+            <pre><code>cp .env.example .env
+# Edit .env with your API keys
+nano .env</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">3</span><h3>Run setup</h3>
+            <pre><code>chmod +x setup.sh
+./setup.sh</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">4</span><h3>Verify</h3>
+            <pre><code>curl http://localhost:8000/
+# Interactive docs: http://localhost:8000/docs</code></pre>
+        </div>
+        <div class="tip">💡 <strong>Tip:</strong> Open <code>http://localhost:8000/docs</code> for the interactive Swagger UI.</div>
+
+        <h2 id="config">3. Configuration</h2>
+        <table>
+            <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+            <tr><td><code>PORT</code></td><td>Server</td><td><code>8000</code></td></tr>
+<tr><td><code>DEFAULT_RATE_LIMIT</code></td><td>Rate Limiting Defaults</td><td><code>100          # Max requests per window</code></td></tr>
+<tr><td><code>DEFAULT_WINDOW_SECONDS</code></td><td>DEFAULT_WINDOW_SECONDS</td><td><code>60       # Window size in seconds</code></td></tr>
+<tr><td><code>REDIS_URL</code></td><td>Redis (optional — uses in-memory if not set)</td><td><code># redis://localhost:6379/0</code></td></tr>
+<tr><td><code>ADMIN_API_KEY</code></td><td>Security</td><td><code>admin-secret-key  # Required for /rules, /clients, /analytics</code></td></tr>
+<tr><td><code>API_KEY_HEADER</code></td><td>API_KEY_HEADER</td><td><code>X-API-Key        # Header name for API key identification</code></td></tr>
+<tr><td><code>ALERT_WEBHOOK_URL</code></td><td>Alerts (optional)</td><td><code># POST webhook when limits exceeded</code></td></tr>
+        </table>
+
+        <h2 id="api">4. API Reference</h2>
+        
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/</code>
+            <p>Service info and health check.</p>
+            <pre><code>curl -X GET http://localhost:8000/ \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/health</code>
+            <p>Health check endpoint.</p>
+            <pre><code>curl -X GET http://localhost:8000/health \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/check</code>
+            <p>Check if a request should be allowed (without consuming a token).</p>
+            <pre><code>curl -X POST http://localhost:8000/check \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/hit</code>
+            <p>Record a request hit and return rate limit status.</p>
+            <pre><code>curl -X POST http://localhost:8000/hit \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/rules</code>
+            <p>List all custom rate limit rules.</p>
+            <pre><code>curl -X GET http://localhost:8000/rules \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/rules</code>
+            <p>Create or update a rate limit rule for an endpoint.</p>
+            <pre><code>curl -X POST http://localhost:8000/rules \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-delete">DELETE</span>
+            <code>/rules/{endpoint:path}</code>
+            <p>Delete a rate limit rule.</p>
+            <pre><code>curl -X DELETE http://localhost:8000/rules/{endpoint:path} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/clients</code>
+            <p>List all tracked clients with their current usage.</p>
+            <pre><code>curl -X GET http://localhost:8000/clients \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/clients/{client_id}</code>
+            <p>Get detailed stats for a specific client.</p>
+            <pre><code>curl -X GET http://localhost:8000/clients/{client_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-delete">DELETE</span>
+            <code>/clients/{client_id}</code>
+            <p>Reset rate limit counters for a client.</p>
+            <pre><code>curl -X DELETE http://localhost:8000/clients/{client_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/analytics</code>
+            <p>Get global analytics and usage statistics.</p>
+            <pre><code>curl -X GET http://localhost:8000/analytics \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/dashboard</code>
+            <p>Real-time analytics dashboard.</p>
+            <pre><code>curl -X GET http://localhost:8000/dashboard \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+
+        <h2 id="docker">5. Docker Deployment</h2>
+        <div class="step">
+            <span class="step-num">1</span><h3>Build</h3>
+            <pre><code>docker build -t api-rate-limiter .</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">2</span><h3>Run</h3>
+            <pre><code>docker run -d --name api-rate-limiter --env-file .env -p 8000:8000 api-rate-limiter</code></pre>
+        </div>
+
+        <h2 id="troubleshooting">6. Troubleshooting</h2>
+        <div class="warning">⚠️ <strong>"Module not found":</strong> Run <code>./setup.sh</code> or <code>pip install -r requirements.txt</code></div>
+        <div class="warning">⚠️ <strong>"API key not set":</strong> Check your <code>.env</code> file</div>
+        <div class="warning">⚠️ <strong>Port in use:</strong> Change PORT in <code>.env</code> or run <code>lsof -i :8000</code></div>
+        <h3>Support</h3>
+        <p>Email: <a href="mailto:support@mywork-ai.dev">support@mywork-ai.dev</a></p>
+    </div>
+    <div class="footer">
+        <p>© 2026 MyWork-AI • <a href="https://mywork-ai.dev">mywork-ai.dev</a></p>
+        <p>Thank you for your purchase! 🚀</p>
+    </div>
+</body>
+</html>

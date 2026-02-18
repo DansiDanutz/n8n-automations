@@ -1,0 +1,19 @@
+{
+  "name": "AI Document Summarizer",
+  "description": "Upload any document (PDF, DOCX, TXT, CSV) and get instant AI-powered summaries, key points extraction, action items, and Q&A. Built with FastAPI and OpenAI. Perfect for processing contracts, reports, research papers, and meeting notes. Includes batch processing for multiple documents.",
+  "price": 29.99,
+  "category": "ai",
+  "tags": ["ai", "documents", "summarizer", "pdf", "openai", "nlp", "productivity"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "Upload PDF, DOCX, TXT, CSV files",
+    "AI-powered document summarization",
+    "Key points and action items extraction",
+    "Ask questions about uploaded documents",
+    "Batch processing for multiple files",
+    "Summary history and search",
+    "Configurable summary length and style",
+    "REST API for integration"
+  ]
+}

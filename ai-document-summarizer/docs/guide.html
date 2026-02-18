@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Summarizer — Setup Guide</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.7; color: #1a1a2e; background: #fafbfc; }
+        .cover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 80px 40px; text-align: center; }
+        .cover h1 { font-size: 2.8rem; margin-bottom: 10px; }
+        .cover .tagline { font-size: 1.3rem; opacity: 0.9; margin-bottom: 20px; }
+        .cover .price { font-size: 1.5rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 8px 24px; border-radius: 30px; }
+        .cover .meta { margin-top: 20px; opacity: 0.7; font-size: 0.9rem; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        h2 { color: #667eea; font-size: 1.8rem; margin: 50px 0 20px; padding-bottom: 10px; border-bottom: 2px solid #e8ecf1; }
+        h3 { color: #333; font-size: 1.3rem; margin: 30px 0 15px; }
+        p { margin-bottom: 15px; color: #444; }
+        ul { margin: 10px 0 20px 25px; }
+        li { margin: 5px 0; }
+        .step { background: white; border: 1px solid #e8ecf1; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .step-num { background: #667eea; color: white; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; }
+        .step h3 { display: inline; vertical-align: middle; margin: 0; }
+        code { background: #f0f2f5; padding: 2px 8px; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; }
+        pre { background: #1a1a2e; color: #e8ecf1; padding: 20px; border-radius: 10px; overflow-x: auto; margin: 15px 0; }
+        pre code { background: none; padding: 0; color: inherit; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { background: #667eea; color: white; padding: 12px 16px; text-align: left; }
+        td { padding: 12px 16px; border-bottom: 1px solid #e8ecf1; }
+        tr:hover td { background: #f8f9ff; }
+        .badge { display: inline-block; background: #e3f2fd; color: #1565c0; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin: 2px; }
+        .tag { display: inline-block; background: #f3e5f5; color: #7b1fa2; padding: 3px 10px; border-radius: 15px; font-size: 0.8rem; margin: 2px; }
+        .endpoint { background: #f8f9ff; border: 1px solid #e0e4ff; border-radius: 10px; padding: 20px; margin: 15px 0; }
+        .method { display: inline-block; padding: 3px 10px; border-radius: 5px; font-weight: bold; font-size: 0.85rem; color: white; margin-right: 8px; }
+        .method-get { background: #4caf50; }
+        .method-post { background: #2196f3; }
+        .method-put { background: #ff9800; }
+        .method-delete { background: #f44336; }
+        .method-patch { background: #9c27b0; }
+        .tip { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+        .warning { background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 20px 0; }
+        .toc { background: white; border: 1px solid #e8ecf1; border-radius: 12px; padding: 25px; margin: 30px 0; }
+        .toc a { color: #667eea; text-decoration: none; display: block; padding: 5px 0; }
+        .toc a:hover { text-decoration: underline; }
+        .footer { text-align: center; padding: 40px; color: #888; font-size: 0.9rem; border-top: 1px solid #e8ecf1; margin-top: 60px; }
+        @media print { .cover { padding: 60px 20px; } }
+        @media (max-width: 600px) { .cover h1 { font-size: 2rem; } }
+    </style>
+</head>
+<body>
+    <div class="cover">
+        <h1>AI Document Summarizer</h1>
+        <p class="tagline">Upload any document (PDF, DOCX, TXT, CSV) and get instant AI-powered summaries, key points extraction, action items, and Q&A. Built with FastAPI and O</p>
+        <span class="price">$29.99</span>
+        <p class="meta">v1.0.0 • Setup Guide • February 2026 • MyWork-AI</p>
+    </div>
+    <div class="container">
+        <div class="toc">
+            <h3>📖 Table of Contents</h3>
+            <a href="#overview">1. Overview</a>
+            <a href="#quickstart">2. Quick Start (5 minutes)</a>
+            <a href="#config">3. Configuration</a>
+            <a href="#api">4. API Reference</a>
+            <a href="#docker">5. Docker Deployment</a>
+            <a href="#troubleshooting">6. Troubleshooting</a>
+        </div>
+
+        <h2 id="overview">1. Overview</h2>
+        <p>Upload any document (PDF, DOCX, TXT, CSV) and get instant AI-powered summaries, key points extraction, action items, and Q&A. Built with FastAPI and OpenAI. Perfect for processing contracts, reports, research papers, and meeting notes. Includes batch processing for multiple documents.</p>
+        <h3>Tech Stack</h3>
+        <p><span class="badge">Python</span> <span class="badge">FastAPI</span> <span class="badge">OpenAI</span> <span class="badge">Docker</span></p>
+        <h3>Features</h3>
+        <ul><li>Upload PDF, DOCX, TXT, CSV files</li>
+<li>AI-powered document summarization</li>
+<li>Key points and action items extraction</li>
+<li>Ask questions about uploaded documents</li>
+<li>Batch processing for multiple files</li>
+<li>Summary history and search</li>
+<li>Configurable summary length and style</li>
+<li>REST API for integration</li></ul>
+        <h3>Tags</h3>
+        <p><span class="tag">ai</span> <span class="tag">documents</span> <span class="tag">summarizer</span> <span class="tag">pdf</span> <span class="tag">openai</span> <span class="tag">nlp</span> <span class="tag">productivity</span></p>
+
+        <h2 id="quickstart">2. Quick Start</h2>
+        <div class="step">
+            <span class="step-num">1</span><h3>Extract the package</h3>
+            <pre><code>tar -xzf ai-document-summarizer.tar.gz
+cd ai-document-summarizer/</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">2</span><h3>Configure environment</h3>
+            <pre><code>cp .env.example .env
+# Edit .env with your API keys
+nano .env</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">3</span><h3>Run setup</h3>
+            <pre><code>chmod +x setup.sh
+./setup.sh</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">4</span><h3>Verify</h3>
+            <pre><code>curl http://localhost:8000/
+# Interactive docs: http://localhost:8000/docs</code></pre>
+        </div>
+        <div class="tip">💡 <strong>Tip:</strong> Open <code>http://localhost:8000/docs</code> for the interactive Swagger UI.</div>
+
+        <h2 id="config">3. Configuration</h2>
+        <table>
+            <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+            <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI</td><td><code>sk-your-key-here</code></td></tr>
+<tr><td><code>OPENAI_MODEL</code></td><td>OPENAI_MODEL</td><td><code>gpt-3.5-turbo</code></td></tr>
+<tr><td><code>PORT</code></td><td>Server</td><td><code>8000</code></td></tr>
+<tr><td><code>DB_PATH</code></td><td>Storage</td><td><code>./summaries.db</code></td></tr>
+<tr><td><code>UPLOAD_DIR</code></td><td>UPLOAD_DIR</td><td><code>./uploads</code></td></tr>
+<tr><td><code>MAX_FILE_SIZE_MB</code></td><td>MAX_FILE_SIZE_MB</td><td><code>10</code></td></tr>
+        </table>
+
+        <h2 id="api">4. API Reference</h2>
+        
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/</code>
+            <p>Service info.</p>
+            <pre><code>curl -X GET http://localhost:8000/ \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/health</code>
+            <p>Health check.</p>
+            <pre><code>curl -X GET http://localhost:8000/health \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/upload</code>
+            <p>Ask a question about an uploaded document.</p>
+            <pre><code>curl -X POST http://localhost:8000/upload \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/summarize/{document_id}</code>
+            <p>Ask a question about an uploaded document.</p>
+            <pre><code>curl -X POST http://localhost:8000/summarize/{document_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-post">POST</span>
+            <code>/ask/{document_id}</code>
+            <p>Ask a question about an uploaded document.</p>
+            <pre><code>curl -X POST http://localhost:8000/ask/{document_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/documents</code>
+            <p>List all uploaded documents.</p>
+            <pre><code>curl -X GET http://localhost:8000/documents \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/documents/{document_id}</code>
+            <p>Get document details with all summaries and Q&A history.</p>
+            <pre><code>curl -X GET http://localhost:8000/documents/{document_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-delete">DELETE</span>
+            <code>/documents/{document_id}</code>
+            <p>Delete a document and its summaries.</p>
+            <pre><code>curl -X DELETE http://localhost:8000/documents/{document_id} \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+        <div class="endpoint">
+            <span class="method method-get">GET</span>
+            <code>/stats</code>
+            <p>Get usage statistics.</p>
+            <pre><code>curl -X GET http://localhost:8000/stats \
+  -H "Content-Type: application/json"</code></pre>
+        </div>
+
+
+        <h2 id="docker">5. Docker Deployment</h2>
+        <div class="step">
+            <span class="step-num">1</span><h3>Build</h3>
+            <pre><code>docker build -t ai-document-summarizer .</code></pre>
+        </div>
+        <div class="step">
+            <span class="step-num">2</span><h3>Run</h3>
+            <pre><code>docker run -d --name ai-document-summarizer --env-file .env -p 8000:8000 ai-document-summarizer</code></pre>
+        </div>
+
+        <h2 id="troubleshooting">6. Troubleshooting</h2>
+        <div class="warning">⚠️ <strong>"Module not found":</strong> Run <code>./setup.sh</code> or <code>pip install -r requirements.txt</code></div>
+        <div class="warning">⚠️ <strong>"API key not set":</strong> Check your <code>.env</code> file</div>
+        <div class="warning">⚠️ <strong>Port in use:</strong> Change PORT in <code>.env</code> or run <code>lsof -i :8000</code></div>
+        <h3>Support</h3>
+        <p>Email: <a href="mailto:support@mywork-ai.dev">support@mywork-ai.dev</a></p>
+    </div>
+    <div class="footer">
+        <p>© 2026 MyWork-AI • <a href="https://mywork-ai.dev">mywork-ai.dev</a></p>
+        <p>Thank you for your purchase! 🚀</p>
+    </div>
+</body>
+</html>

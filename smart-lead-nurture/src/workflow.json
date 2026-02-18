@@ -1,0 +1,183 @@
+{
+  "name": "Smart Lead Nurture",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Lead Capture Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a lead scoring AI. Analyze the lead data and return a JSON object with: score (1-10), segment (hot/warm/cold), reasoning (one sentence), suggested_action (one sentence). Consider: company size, role seniority, engagement signals, industry fit."
+            },
+            {
+              "role": "user", 
+              "content": "Score this lead:\nName: {{$json.name}}\nEmail: {{$json.email}}\nCompany: {{$json.company}}\nRole: {{$json.role}}\nSource: {{$json.source}}\nMessage: {{$json.message}}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "responseFormat": "json"
+        }
+      },
+      "id": "ai-scorer",
+      "name": "AI Lead Scorer",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = JSON.parse($input.first().json.message.content);\nconst lead = $('Lead Capture Webhook').first().json;\n\nreturn [{\n  json: {\n    ...lead,\n    ai_score: aiResponse.score,\n    segment: aiResponse.segment,\n    reasoning: aiResponse.reasoning,\n    suggested_action: aiResponse.suggested_action,\n    scored_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-score",
+      "name": "Parse AI Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{$json.segment}}",
+              "rightValue": "hot",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "segment-router",
+      "name": "Route by Segment",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#sales-alerts",
+        "text": "🔥 *HOT LEAD*\n*{{$json.name}}* ({{$json.company}})\nScore: {{$json.ai_score}}/10\n{{$json.reasoning}}\n\n💡 {{$json.suggested_action}}",
+        "otherOptions": {}
+      },
+      "id": "slack-alert",
+      "name": "Slack Hot Lead Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1130, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-cred",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_USER}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Thanks for reaching out, {{$json.name}}!",
+        "html": "<h2>Hi {{$json.name}},</h2><p>Thanks for your interest! Based on what you shared, I think we can really help {{$json.company}}.</p><p>{{$json.suggested_action}}</p><p>I'd love to schedule a quick 15-minute call. Would any of these times work?</p><p>Best,<br>Your Sales Team</p>",
+        "options": {}
+      },
+      "id": "hot-email",
+      "name": "Priority Follow-up Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1130, 350],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cred",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_USER}}",
+        "toEmail": "={{$json.email}}",
+        "subject": "Great to meet you, {{$json.name}}",
+        "html": "<h2>Hi {{$json.name}},</h2><p>Thanks for connecting with us! We've got some great resources that might help {{$json.company}}.</p><p>Here are a few things you might find useful:</p><ul><li>Our getting started guide</li><li>Case studies from similar companies</li><li>A free consultation booking link</li></ul><p>Best,<br>Your Team</p>",
+        "options": {}
+      },
+      "id": "warm-email",
+      "name": "Nurture Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1130, 500],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-cred",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"received\", \"score\": {{$json.ai_score}}, \"segment\": \"{{$json.segment}}\"}"
+      },
+      "id": "response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1350, 300]
+    }
+  ],
+  "connections": {
+    "Lead Capture Webhook": {
+      "main": [[{"node": "AI Lead Scorer", "type": "main", "index": 0}]]
+    },
+    "AI Lead Scorer": {
+      "main": [[{"node": "Parse AI Score", "type": "main", "index": 0}]]
+    },
+    "Parse AI Score": {
+      "main": [[{"node": "Route by Segment", "type": "main", "index": 0}]]
+    },
+    "Route by Segment": {
+      "main": [
+        [
+          {"node": "Slack Hot Lead Alert", "type": "main", "index": 0},
+          {"node": "Priority Follow-up Email", "type": "main", "index": 0}
+        ],
+        [
+          {"node": "Nurture Email", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Slack Hot Lead Alert": {
+      "main": [[{"node": "Webhook Response", "type": "main", "index": 0}]]
+    },
+    "Priority Follow-up Email": {
+      "main": [[{"node": "Webhook Response", "type": "main", "index": 0}]]
+    },
+    "Nurture Email": {
+      "main": [[{"node": "Webhook Response", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["lead-generation", "ai", "automation", "sales"]
+}

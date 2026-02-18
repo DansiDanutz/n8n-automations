@@ -1,0 +1,80 @@
+{
+  "name": "Webhook Relay & Logger",
+  "version": "1.0.0",
+  "price": 14.99,
+  "currency": "USD",
+  "category": "tools",
+  "tags": ["webhooks", "debugging", "api", "integration", "logging", "relay"],
+  "description": "Catch, inspect, forward, and replay webhooks with advanced debugging capabilities. Perfect for integration testing and webhook development.",
+  "short_description": "Advanced webhook debugging and relay service",
+  "features": [
+    "Universal webhook catcher for any HTTP method",
+    "Real-time webhook inspection and logging",
+    "Advanced filtering and search capabilities",
+    "Webhook relay and forwarding rules",
+    "Payload transformation and modification",
+    "Webhook replay functionality",
+    "Web dashboard for easy debugging",
+    "Analytics and performance monitoring",
+    "Rate limiting and authentication",
+    "Export webhook data for analysis"
+  ],
+  "benefits": [
+    "Debug webhook integrations effortlessly",
+    "Test webhook flows without external services",
+    "Monitor webhook performance and reliability",
+    "Transform webhook payloads on the fly", 
+    "Replay failed webhooks for testing",
+    "Get insights into webhook patterns"
+  ],
+  "technical_specs": {
+    "framework": "FastAPI",
+    "language": "Python 3.11",
+    "database": "PostgreSQL + Redis",
+    "async_processing": "aiohttp + asyncio",
+    "containerization": "Docker",
+    "endpoints": 20,
+    "dashboard": "Built-in HTML dashboard"
+  },
+  "requirements": {
+    "python": ">=3.11",
+    "memory": "256MB",
+    "disk": "500MB",
+    "external_services": ["PostgreSQL", "Redis (optional)"]
+  },
+  "use_cases": [
+    "API integration testing",
+    "Webhook development and debugging",
+    "Third-party service monitoring",
+    "Integration flow validation",
+    "Webhook payload analysis",
+    "Service reliability testing"
+  ],
+  "setup_time": "10 minutes",
+  "difficulty": "beginner",
+  "documentation_quality": "excellent",
+  "support": {
+    "email": "support@mywork-ai.dev",
+    "discord": "https://discord.gg/mywork-ai",
+    "documentation": "README.md"
+  },
+  "license": "MIT",
+  "author": "MyWork-AI Team",
+  "created_at": "2024-02-15T20:45:00Z",
+  "updated_at": "2024-02-15T20:45:00Z",
+  "demo_url": null,
+  "video_url": null,
+  "screenshots": [
+    "screenshots/dashboard.png",
+    "screenshots/webhook-logs.png",
+    "screenshots/relay-rules.png",
+    "screenshots/analytics.png"
+  ],
+  "marketplace_data": {
+    "featured": false,
+    "trending": true,
+    "rating": null,
+    "reviews_count": 0,
+    "downloads": 0
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "name": "Appointment Booking System",
+  "version": "1.0.0",
+  "price": 29.99,
+  "currency": "USD",
+  "category": "Business Management",
+  "tags": ["Appointments", "Booking", "Scheduling", "Calendar", "Business"],
+  "description": "Professional appointment booking and scheduling system with real-time availability, email notifications, and comprehensive management features",
+  "short_description": "Complete appointment booking system with availability management and automated notifications",
+  "features": [
+    "Real-time appointment booking",
+    "Availability checking and management",
+    "Email confirmation and reminders",
+    "Flexible time slot configuration",
+    "Multi-service appointment types",
+    "Booking management (create, update, cancel)",
+    "Comprehensive statistics and reporting",
+    "RESTful API with full documentation",
+    "Docker containerization",
+    "Customizable working hours"
+  ],
+  "tech_stack": [
+    "FastAPI",
+    "Python 3.11",
+    "Pydantic",
+    "Uvicorn",
+    "Docker",
+    "Email Integration",
+    "SQLite/PostgreSQL ready"
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/bookings",
+      "description": "Create new appointment booking"
+    },
+    {
+      "method": "GET",
+      "path": "/bookings",
+      "description": "Get bookings with optional filters"
+    },
+    {
+      "method": "GET",
+      "path": "/availability",
+      "description": "Check availability for specific date"
+    },
+    {
+      "method": "POST",
+      "path": "/slots",
+      "description": "Create custom time slots"
+    },
+    {
+      "method": "DELETE",
+      "path": "/bookings/{id}",
+      "description": "Cancel appointment booking"
+    },
+    {
+      "method": "PUT",
+      "path": "/bookings/{id}",
+      "description": "Update existing booking"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Service health check"
+    },
+    {
+      "method": "GET",
+      "path": "/stats",
+      "description": "Booking statistics and metrics"
+    }
+  ],
+  "requirements": {
+    "python": ">=3.11",
+    "email_service": "SMTP configuration for notifications",
+    "memory": "256MB minimum",
+    "storage": "50MB"
+  },
+  "use_cases": [
+    "Medical appointments",
+    "Consultation booking",
+    "Service scheduling",
+    "Meeting coordination",
+    "Therapy sessions",
+    "Business consultations",
+    "Salon appointments",
+    "Legal consultations"
+  ],
+  "target_audience": [
+    "Healthcare professionals",
+    "Service providers",
+    "Consultants",
+    "Therapists",
+    "Legal professionals",
+    "Beauty salons",
+    "Business consultants",
+    "Freelancers"
+  ],
+  "deployment": {
+    "docker": true,
+    "cloud_ready": true,
+    "database_support": ["SQLite", "PostgreSQL", "In-memory"],
+    "email_integration": true,
+    "health_checks": true
+  },
+  "integrations": {
+    "email_providers": ["SMTP", "SendGrid", "Mailgun"],
+    "calendar_sync": "Google Calendar ready",
+    "payment_gateways": "Stripe/PayPal integration ready",
+    "cms_platforms": ["WordPress", "Custom websites"]
+  },
+  "support": {
+    "documentation": "Complete API documentation with examples",
+    "examples": "Python, JavaScript, cURL, HTML form examples",
+    "docker_compose": "Ready-to-use Docker setup",
+    "database_migration": "Migration scripts included"
+  },
+  "license": "Private",
+  "author": "Memo",
+  "contact": "memo@mywork-ai.dev",
+  "repository": "https://github.com/DansiDanutz/appointment-booking-system",
+  "created_date": "2026-02-15",
+  "last_updated": "2026-02-15"
+}

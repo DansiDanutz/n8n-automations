@@ -1,0 +1,67 @@
+[
+  {
+    "slug": "voice-ai-platform",
+    "rid": "d9f90bb2-4049-4612-9dc8-fea0cc363355",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/d9f90bb2-4049-4612-9dc8-fea0cc363355"
+  },
+  {
+    "slug": "ai-customer-support-bot",
+    "rid": "cd075805-3d01-43d8-916c-b8ac3993f55f",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/cd075805-3d01-43d8-916c-b8ac3993f55f"
+  },
+  {
+    "slug": "ai-email-assistant",
+    "rid": "00269aa3-440f-4d18-9f55-5bd65a9b9ccb",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/00269aa3-440f-4d18-9f55-5bd65a9b9ccb"
+  },
+  {
+    "slug": "invoice-generator-api",
+    "rid": "eb26fe8d-a5d0-48e0-870a-9d0de9db10d1",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/eb26fe8d-a5d0-48e0-870a-9d0de9db10d1"
+  },
+  {
+    "slug": "appointment-booking-system",
+    "rid": "2cef20e9-4ee4-4163-8062-4517434524b8",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/2cef20e9-4ee4-4163-8062-4517434524b8"
+  },
+  {
+    "slug": "ai-seo-content-generator",
+    "rid": "9732bb20-1d51-483f-877f-299329b9f009",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/9732bb20-1d51-483f-877f-299329b9f009"
+  },
+  {
+    "slug": "social-media-auto-poster",
+    "rid": "952822ed-ecb1-4694-ae5a-8d7a5f9c6869",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/952822ed-ecb1-4694-ae5a-8d7a5f9c6869"
+  },
+  {
+    "slug": "webhook-relay-logger",
+    "rid": "128757ab-123c-42cf-b9f8-dd8b93cbeff0",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/128757ab-123c-42cf-b9f8-dd8b93cbeff0"
+  },
+  {
+    "slug": "smart-lead-nurture",
+    "rid": "d502644a-e75f-4243-8324-1420169bc2dd",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/d502644a-e75f-4243-8324-1420169bc2dd"
+  },
+  {
+    "slug": "api-rate-limiter",
+    "rid": "87cd7eb6-4e52-402a-a2a2-8fc0dd3a7411",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/87cd7eb6-4e52-402a-a2a2-8fc0dd3a7411"
+  },
+  {
+    "slug": "ai-document-summarizer",
+    "rid": "ac80a30a-416c-4f27-99d8-5540ba61dcdd",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/ac80a30a-416c-4f27-99d8-5540ba61dcdd"
+  },
+  {
+    "slug": "cron-job-dashboard",
+    "rid": "ef2f9622-76f1-4900-bc1d-054f9789c0a0",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/ef2f9622-76f1-4900-bc1d-054f9789c0a0"
+  },
+  {
+    "slug": "sports-ai",
+    "rid": "114d6287-d987-4b8b-b239-d3a55ea1858d",
+    "url": "https://queue.fal.run/fal-ai/veo2/requests/114d6287-d987-4b8b-b239-d3a55ea1858d"
+  }
+]

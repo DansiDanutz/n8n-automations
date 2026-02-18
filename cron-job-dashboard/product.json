@@ -1,0 +1,19 @@
+{
+  "name": "Cron Job Dashboard",
+  "description": "A visual dashboard and API for managing scheduled tasks. Create, monitor, pause, and debug cron jobs through a beautiful web UI or REST API. Features real-time execution logs, failure alerts via webhook, retry logic, and execution history. Never miss a failed job again.",
+  "price": 19.99,
+  "category": "devops",
+  "tags": ["cron", "scheduler", "dashboard", "monitoring", "devops", "automation"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "Beautiful web dashboard for cron management",
+    "Create/edit/delete cron jobs via API",
+    "Real-time execution logs",
+    "Failure detection and webhook alerts",
+    "Automatic retry with exponential backoff",
+    "Execution history and statistics",
+    "Pause/resume individual jobs",
+    "Docker-ready deployment"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+    "slug": "ai-document-summarizer",
+    "name": "AI Document Summarizer",
+    "price": 29.99,
+    "published_at": "2026-02-17T03:05:47Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/ai-document-summarizer.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/ai-document-summarizer.tar.gz",
+    "stripe_product_id": "prod_TzdtQrTX8UTfob",
+    "stripe_price_id": "price_1T1ebc2LiKdy4qct2muKUuTl",
+    "marketplace_id": "366fa1b0-0949-4780-b75a-3a0e09141d94"
+}

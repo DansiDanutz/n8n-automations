@@ -1,0 +1,71 @@
+{
+  "name": "AI Email Assistant",
+  "version": "1.0.0",
+  "price": 34.99,
+  "currency": "USD",
+  "category": "productivity",
+  "tags": ["email", "ai", "automation", "productivity", "gmail", "outlook"],
+  "description": "Intelligent email management with AI-powered summarization, categorization, and automation. Connect Gmail/Outlook accounts for smart inbox processing.",
+  "short_description": "AI-powered email management and automation service",
+  "features": [
+    "Connect Gmail and Outlook accounts",
+    "AI-powered email summarization",
+    "Intelligent reply generation",
+    "Smart email categorization",
+    "Priority scoring system",
+    "Advanced spam detection",
+    "Webhook integration for n8n",
+    "Bulk email processing",
+    "Email analytics dashboard",
+    "REST API with comprehensive endpoints"
+  ],
+  "benefits": [
+    "Save hours daily on email management",
+    "Never miss important emails again", 
+    "Automated inbox organization",
+    "Smart reply suggestions",
+    "Spam-free inbox experience",
+    "Seamless n8n workflow integration"
+  ],
+  "technical_specs": {
+    "framework": "FastAPI",
+    "language": "Python 3.11",
+    "database": "PostgreSQL + Redis",
+    "ai_models": "OpenAI GPT-3.5, NLTK, scikit-learn",
+    "email_apis": "Gmail API, Exchange/Outlook",
+    "containerization": "Docker",
+    "endpoints": 15
+  },
+  "requirements": {
+    "python": ">=3.11",
+    "memory": "512MB",
+    "disk": "1GB",
+    "external_apis": ["OpenAI", "Gmail API", "Microsoft Graph API"]
+  },
+  "setup_time": "15 minutes",
+  "difficulty": "intermediate",
+  "documentation_quality": "excellent",
+  "support": {
+    "email": "support@mywork-ai.dev",
+    "discord": "https://discord.gg/mywork-ai",
+    "documentation": "README.md"
+  },
+  "license": "MIT",
+  "author": "MyWork-AI Team",
+  "created_at": "2024-02-15T20:39:00Z",
+  "updated_at": "2024-02-15T20:39:00Z",
+  "demo_url": null,
+  "video_url": null,
+  "screenshots": [
+    "screenshots/dashboard.png",
+    "screenshots/email-summary.png", 
+    "screenshots/reply-generation.png"
+  ],
+  "marketplace_data": {
+    "featured": true,
+    "trending": false,
+    "rating": null,
+    "reviews_count": 0,
+    "downloads": 0
+  }
+}

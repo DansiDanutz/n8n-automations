@@ -1,0 +1,11 @@
+{
+    "slug": "cron-job-dashboard",
+    "name": "Cron Job Dashboard",
+    "price": 19.99,
+    "published_at": "2026-02-17T03:06:01Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/cron-job-dashboard.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/cron-job-dashboard.tar.gz",
+    "stripe_product_id": "prod_TzdteyWhjvhPZ4",
+    "stripe_price_id": "price_1T1ebq2LiKdy4qctU7v2WBd1",
+    "marketplace_id": "e40a0047-7ae5-4de1-9e3f-ba98faefd345"
+}

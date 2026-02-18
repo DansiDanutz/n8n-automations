@@ -1,0 +1,26 @@
+{
+  "name": "Invoice Generator API",
+  "description": "Professional invoice generation API with PDF export, tax calculation, multi-currency support, and webhook notifications. Perfect for SaaS apps, e-commerce platforms, and service businesses. Generate beautiful, branded invoices programmatically.",
+  "price": 39.99,
+  "category": "tools",
+  "tags": ["invoicing", "api", "business", "pdf", "billing", "automation", "fastapi", "webhook"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "RESTful API with FastAPI",
+    "Professional PDF invoice templates",
+    "Multi-currency support (150+ currencies)",
+    "Tax calculation and VAT support",
+    "Webhook notifications",
+    "Invoice tracking and status updates",
+    "Custom branding and templates",
+    "Database storage with SQLite/PostgreSQL"
+  ],
+  "requirements": {
+    "python": ">=3.8.0",
+    "fastapi": ">=0.68.0",
+    "postgresql": "optional",
+    "redis": "optional",
+    "domain": "recommended"
+  }
+}

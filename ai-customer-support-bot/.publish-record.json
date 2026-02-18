@@ -1,0 +1,11 @@
+{
+    "slug": "ai-customer-support-bot",
+    "name": "AI Customer Support Bot",
+    "price": 49.99,
+    "published_at": "2026-02-17T02:18:19Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/ai-customer-support-bot.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/ai-customer-support-bot.tar.gz",
+    "stripe_product_id": "null",
+    "stripe_price_id": "null",
+    "marketplace_id": "4b404054-2a5b-4f58-88fa-5b336342cda1"
+}

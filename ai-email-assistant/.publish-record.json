@@ -1,0 +1,11 @@
+{
+    "slug": "ai-email-assistant",
+    "name": "AI Email Assistant",
+    "price": 34.99,
+    "published_at": "2026-02-17T02:19:34Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/ai-email-assistant.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/ai-email-assistant.tar.gz",
+    "stripe_product_id": "prod_Tzd9oHtJEbns2M",
+    "stripe_price_id": "price_1T1dsu2LiKdy4qctp9t6UqRz",
+    "marketplace_id": "6f2a5163-72f2-408c-936a-62ff92e2d508"
+}

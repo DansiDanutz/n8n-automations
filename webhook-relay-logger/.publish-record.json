@@ -1,0 +1,11 @@
+{
+    "slug": "webhook-relay-logger",
+    "name": "Webhook Relay & Logger",
+    "price": 14.99,
+    "published_at": "2026-02-17T02:19:53Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/webhook-relay-logger.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/webhook-relay-logger.tar.gz",
+    "stripe_product_id": "prod_Tzd9SGYJahLWD4",
+    "stripe_price_id": "price_1T1dtD2LiKdy4qctZ64xp2QJ",
+    "marketplace_id": "dade4622-b3ed-4dfb-852a-dbc41d9bfb41"
+}

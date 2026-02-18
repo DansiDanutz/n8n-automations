@@ -1,0 +1,102 @@
+{
+  "name": "AI SEO Content Generator",
+  "version": "1.0.0",
+  "price": 44.99,
+  "currency": "USD",
+  "category": "Content Marketing",
+  "tags": ["SEO", "AI", "Content Generation", "Marketing", "Blog Writing"],
+  "description": "Professional AI-powered SEO content generation service with keyword analysis and competitor research",
+  "short_description": "Generate SEO-optimized content, analyze keywords, and research competitors using advanced AI",
+  "features": [
+    "AI-powered blog post generation",
+    "SEO-optimized meta descriptions",
+    "Keyword difficulty analysis",
+    "Competitor content analysis",
+    "Multi-model AI support (Claude, GPT-4)",
+    "RESTful API with comprehensive documentation",
+    "Docker containerization",
+    "Real-time content optimization",
+    "Bulk content processing",
+    "Professional error handling"
+  ],
+  "tech_stack": [
+    "FastAPI",
+    "Python 3.11",
+    "OpenRouter API",
+    "OpenAI API",
+    "Docker",
+    "Uvicorn",
+    "Pydantic"
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/generate/blog-post",
+      "description": "Generate SEO-optimized blog posts"
+    },
+    {
+      "method": "POST",
+      "path": "/generate/meta-description",
+      "description": "Create compelling meta descriptions"
+    },
+    {
+      "method": "POST", 
+      "path": "/analyze/keywords",
+      "description": "Analyze keyword difficulty and opportunities"
+    },
+    {
+      "method": "POST",
+      "path": "/analyze/competitors",
+      "description": "Research competitor content strategies"
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Service health check"
+    },
+    {
+      "method": "GET",
+      "path": "/stats",
+      "description": "Service statistics and metrics"
+    }
+  ],
+  "requirements": {
+    "python": ">=3.11",
+    "api_keys": ["OpenRouter or OpenAI"],
+    "memory": "512MB minimum",
+    "storage": "100MB"
+  },
+  "use_cases": [
+    "Blog content creation",
+    "SEO optimization",
+    "Content marketing automation",
+    "Keyword research",
+    "Competitor analysis",
+    "Meta tag optimization"
+  ],
+  "target_audience": [
+    "Content marketers",
+    "SEO specialists",
+    "Digital agencies",
+    "Bloggers",
+    "E-commerce businesses",
+    "SaaS companies"
+  ],
+  "deployment": {
+    "docker": true,
+    "cloud_ready": true,
+    "auto_scaling": true,
+    "health_checks": true
+  },
+  "support": {
+    "documentation": "Complete API documentation included",
+    "examples": "Python, JavaScript, cURL examples",
+    "docker_compose": "Ready-to-use Docker setup"
+  },
+  "license": "Private",
+  "author": "Memo",
+  "contact": "memo@mywork-ai.dev",
+  "repository": "https://github.com/DansiDanutz/ai-seo-content-generator",
+  "created_date": "2026-02-15",
+  "last_updated": "2026-02-15"
+}

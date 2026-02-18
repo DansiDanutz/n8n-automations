@@ -1,0 +1,275 @@
+{
+  "name": "Product Video Generator Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-video",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - New Product",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You create cinematic video prompts for AI product demos. Output ONLY the prompt, no explanation. Make it vivid, professional, with dark theme UI, smooth animations, and tech aesthetic. 2-3 sentences max.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Create a video prompt for: {{ $json.body.product_name }} - {{ $json.body.description }}\"\n    }\n  ],\n  \"max_tokens\": 200,\n  \"temperature\": 0.8\n}"
+      },
+      "id": "generate-prompt",
+      "name": "AI - Generate Video Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/veo2",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $env.FAL_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.choices[0].message.content }}\",\n  \"duration\": \"8s\",\n  \"aspect_ratio\": \"16:9\"\n}"
+      },
+      "id": "submit-veo2",
+      "name": "fal.ai - Submit Veo2 Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "amount": 90,
+        "unit": "seconds"
+      },
+      "id": "wait-generation",
+      "name": "Wait 90s for Generation",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('fal.ai - Submit Veo2 Job').item.json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $env.FAL_API_KEY }}"
+            }
+          ]
+        }
+      },
+      "id": "fetch-result",
+      "name": "fal.ai - Fetch Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.video?.url || $json.video }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-video",
+      "name": "Video Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://uploads.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/releases/{{ $env.GITHUB_RELEASE_ID }}/assets?name={{ $('Webhook - New Product').item.json.body.slug }}.mp4",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=token {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "video/mp4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "bodyParameters": {
+          "parameters": []
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          }
+        }
+      },
+      "id": "upload-github",
+      "name": "Upload to GitHub Releases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1750, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.MARKETPLACE_API }}/api/products/{{ $('Webhook - New Product').item.json.body.product_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MARKETPLACE_JWT }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"preview_video_url\": \"https://github.com/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/releases/download/v2.6.0-products/{{ $('Webhook - New Product').item.json.body.slug }}.mp4\"\n}"
+      },
+      "id": "update-marketplace",
+      "name": "Update Marketplace Product",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"video_url\": \"{{ $('fal.ai - Fetch Result').item.json.video?.url || $('fal.ai - Fetch Result').item.json.video }}\",\n  \"github_url\": \"https://github.com/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/releases/download/v2.6.0-products/{{ $('Webhook - New Product').item.json.body.slug }}.mp4\",\n  \"slug\": \"{{ $('Webhook - New Product').item.json.body.slug }}\"\n}"
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 200]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "wait-retry",
+      "name": "Wait 60s Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1750, 450]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('fal.ai - Submit Veo2 Job').item.json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Key {{ $env.FAL_API_KEY }}"
+            }
+          ]
+        }
+      },
+      "id": "retry-fetch",
+      "name": "fal.ai - Retry Fetch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2000, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WEBHOOK_NOTIFICATION_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event\": \"video_generated\",\n  \"product\": \"{{ $('Webhook - New Product').item.json.body.product_name }}\",\n  \"slug\": \"{{ $('Webhook - New Product').item.json.body.slug }}\",\n  \"video_url\": \"https://github.com/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/releases/download/v2.6.0-products/{{ $('Webhook - New Product').item.json.body.slug }}.mp4\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "notify",
+      "name": "Notify (Telegram/Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 350],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Webhook - New Product": {
+      "main": [[{"node": "AI - Generate Video Prompt", "type": "main", "index": 0}]]
+    },
+    "AI - Generate Video Prompt": {
+      "main": [[{"node": "fal.ai - Submit Veo2 Job", "type": "main", "index": 0}]]
+    },
+    "fal.ai - Submit Veo2 Job": {
+      "main": [[{"node": "Wait 90s for Generation", "type": "main", "index": 0}]]
+    },
+    "Wait 90s for Generation": {
+      "main": [[{"node": "fal.ai - Fetch Result", "type": "main", "index": 0}]]
+    },
+    "fal.ai - Fetch Result": {
+      "main": [[{"node": "Video Ready?", "type": "main", "index": 0}]]
+    },
+    "Video Ready?": {
+      "main": [
+        [{"node": "Upload to GitHub Releases", "type": "main", "index": 0}],
+        [{"node": "Wait 60s Retry", "type": "main", "index": 0}]
+      ]
+    },
+    "Upload to GitHub Releases": {
+      "main": [[{"node": "Update Marketplace Product", "type": "main", "index": 0}]]
+    },
+    "Update Marketplace Product": {
+      "main": [
+        [{"node": "Respond - Success", "type": "main", "index": 0}],
+        [{"node": "Notify (Telegram/Slack)", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait 60s Retry": {
+      "main": [[{"node": "fal.ai - Retry Fetch", "type": "main", "index": 0}]]
+    },
+    "fal.ai - Retry Fetch": {
+      "main": [[{"node": "Upload to GitHub Releases", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [{"name": "video"}, {"name": "automation"}, {"name": "marketplace"}]
+}

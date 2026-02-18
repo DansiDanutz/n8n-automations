@@ -1,0 +1,11 @@
+{
+    "slug": "social-media-auto-poster",
+    "name": "Social Media Auto-Poster",
+    "price": 19.99,
+    "published_at": "2026-02-17T02:19:48Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/social-media-auto-poster.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/social-media-auto-poster.tar.gz",
+    "stripe_product_id": "prod_Tzd9dfOoybIrBf",
+    "stripe_price_id": "price_1T1dt82LiKdy4qctOmc2tyGZ",
+    "marketplace_id": "7511aa40-4ff4-4ae5-b9ef-796dfc59a2b3"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "Social Media Auto-Poster",
+  "description": "Intelligent social media automation that schedules posts across Twitter, LinkedIn, and Facebook. Features AI-generated captions, content calendar templates, hashtag optimization, and analytics tracking. Perfect for businesses and content creators.",
+  "price": 19.99,
+  "category": "marketing",
+  "tags": ["social-media", "automation", "marketing", "twitter", "linkedin", "facebook", "scheduling", "ai-content"],
+  "version": "1.0.0",
+  "author": "MyWork-AI",
+  "features": [
+    "Multi-platform posting (Twitter, LinkedIn, Facebook)",
+    "AI-generated captions and hashtags",
+    "Smart scheduling with optimal timing",
+    "Content calendar templates",
+    "Image and video support",
+    "Analytics and engagement tracking",
+    "RSS feed integration",
+    "Bulk upload and CSV import"
+  ],
+  "requirements": {
+    "n8n": ">=0.190.0",
+    "openai_api": "required",
+    "twitter_api": "required",
+    "linkedin_api": "optional",
+    "facebook_api": "optional",
+    "storage": "1GB recommended"
+  }
+}

@@ -1,0 +1,11 @@
+{
+    "slug": "smart-lead-nurture",
+    "name": "Smart Lead Nurture",
+    "price": 29.99,
+    "published_at": "2026-02-17T02:19:43Z",
+    "package_file": "/home/Memo1981/n8n-automations/zips/smart-lead-nurture.tar.gz",
+    "github_url": "https://github.com/DansiDanutz/MyWork-AI/releases/download/v2.6.0-products/smart-lead-nurture.tar.gz",
+    "stripe_product_id": "prod_Tzd92DqSvjIbwt",
+    "stripe_price_id": "price_1T1dt32LiKdy4qct0IKDre4h",
+    "marketplace_id": "c44006b8-cd6a-41a0-9648-c2c65f20b0e2"
+}

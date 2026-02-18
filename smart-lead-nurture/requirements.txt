@@ -1,0 +1,3 @@
+# Smart Lead Nurture is an n8n workflow
+# No Python dependencies required
+# Import workflow.json into your n8n instance
