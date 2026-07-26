@@ -7,28 +7,35 @@ A FastAPI-based social media automation system with scheduling capabilities.
 import os
 import sqlite3
 import json
-import asyncio
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Optional, Union
-from pathlib import Path
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 import uuid
-import hashlib
 import hmac
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, HttpUrl
 import uvicorn
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.asyncio import AsyncIOExecutor
-import requests
 import tweepy
 
 # Configuration
 DB_PATH = os.getenv("DB_PATH", "./social_media.db")
 PORT = int(os.getenv("PORT", "8000"))
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == "replace-with-at-least-32-random-characters":
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
+
+api_key = required_secret("API_KEY", 32)
 
 # Social Media API Keys (configured via environment)
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN", "")
@@ -235,7 +242,7 @@ sm_manager = SocialMediaManager()
 # Pydantic models
 class PostCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
-    platforms: List[str] = Field(..., min_items=1)
+    platforms: List[str] = Field(..., min_length=1)
     media_urls: Optional[List[HttpUrl]] = None
     scheduled_time: Optional[str] = None  # ISO format datetime
 
@@ -244,7 +251,7 @@ class PostUpdate(BaseModel):
     platforms: Optional[List[str]] = None
     media_urls: Optional[List[HttpUrl]] = None
     scheduled_time: Optional[str] = None
-    status: Optional[str] = Field(None, regex="^(scheduled|published|failed|cancelled)$")
+    status: Optional[str] = Field(None, pattern="^(scheduled|published|failed|cancelled)$")
 
 class PostResponse(BaseModel):
     id: int
@@ -414,10 +421,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+@app.middleware("http")
+async def authenticate_control_plane(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path not in {"/", "/health"}:
+        provided_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(provided_key, api_key):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
+
 # CORS middleware
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -429,13 +450,13 @@ async def root():
     return {
         "message": "Social Media Auto-Poster is running",
         "status": "healthy",
-        "configured_platforms": [
-            platform for platform, adapter in sm_manager.adapters.items()
-            if adapter.is_configured
-        ],
-        "scheduler_running": scheduler.running,
         "version": "1.0.0"
     }
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 
 @app.post("/posts", response_model=PostResponse)
 async def create_post(post_data: PostCreate, background_tasks: BackgroundTasks):

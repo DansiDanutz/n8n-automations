@@ -109,6 +109,8 @@ nano .env</code></pre>
         <table>
             <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
             <tr><td><code>PORT</code></td><td>Server Configuration</td><td><code>8000</code></td></tr>
+<tr><td><code>API_KEY</code></td><td>Control-plane authentication</td><td><code>replace-with-at-least-32-random-characters</code></td></tr>
+<tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Credentialed browser origins</td><td><code>http://localhost:3000</code></td></tr>
 <tr><td><code>DB_PATH</code></td><td>Database Configuration</td><td><code>./social_media.db</code></td></tr>
 <tr><td><code>TWITTER_BEARER_TOKEN</code></td><td>Twitter/X API Configuration</td><td><code>your-twitter-bearer-token</code></td></tr>
 <tr><td><code>TWITTER_API_KEY</code></td><td>TWITTER_API_KEY</td><td><code>your-twitter-api-key</code></td></tr>
@@ -128,7 +130,8 @@ nano .env</code></pre>
             <code>/</code>
             <p>Health check endpoint.</p>
             <pre><code>curl -X GET http://localhost:8000/ \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -136,7 +139,8 @@ nano .env</code></pre>
             <code>/posts</code>
             <p>Create a new social media post (scheduled or immediate).</p>
             <pre><code>curl -X POST http://localhost:8000/posts \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -144,7 +148,8 @@ nano .env</code></pre>
             <code>/posts</code>
             <p>List posts with optional filtering.</p>
             <pre><code>curl -X GET http://localhost:8000/posts \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -152,7 +157,8 @@ nano .env</code></pre>
             <code>/posts/{post_id}</code>
             <p>Get a specific post by ID.</p>
             <pre><code>curl -X GET http://localhost:8000/posts/{post_id} \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -160,7 +166,8 @@ nano .env</code></pre>
             <code>/posts/{post_id}/publish</code>
             <p>Publish a post immediately (cancel scheduling if needed).</p>
             <pre><code>curl -X POST http://localhost:8000/posts/{post_id}/publish \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -168,23 +175,26 @@ nano .env</code></pre>
             <code>/posts/{post_id}</code>
             <p>Cancel a scheduled post.</p>
             <pre><code>curl -X DELETE http://localhost:8000/posts/{post_id} \
-  -H "Content-Type: application/json"</code></pre>
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/analytics</code>
             <p>Get analytics and metrics for all posts.</p>
-            <pre><code>curl -X GET http://localhost:8000/analytics \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/analytics \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/platforms</code>
             <p>Get status of all configured platforms.</p>
-            <pre><code>curl -X GET http://localhost:8000/platforms \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/platforms \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
 
