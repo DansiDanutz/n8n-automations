@@ -5,21 +5,15 @@ import asyncio
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
-import json
 import base64
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 # Gmail imports
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 
 # Outlook imports
 from exchangelib import Credentials as ExchangeCredentials, Account, Configuration, DELEGATE
-from exchangelib.protocol import BaseProtocol, NoVerifyHTTPAdapter
 
 from ..models.schemas import Email, EmailProvider, WebhookPayload
 

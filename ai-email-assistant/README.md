@@ -57,8 +57,9 @@ Transforms your email workflow with AI that summarizes messages, categorizes ema
 | `GMAIL_CLIENT_SECRET` | Gmail OAuth secret | Google Cloud Console | - |
 | `OUTLOOK_CLIENT_ID` | Microsoft Graph app ID | [Azure Portal](https://portal.azure.com/) | - |
 | `OUTLOOK_CLIENT_SECRET` | Microsoft Graph secret | Azure Portal | - |
-| `JWT_SECRET_KEY` | Token signing key | Generate random 256-bit key | - |
-| `WEBHOOK_SECRET` | Webhook signature secret | Generate random string | - |
+| `JWT_SECRET_KEY` | Token signing key (minimum 32 characters) | Generate random 256-bit key | - |
+| `WEBHOOK_SECRET` | `X-Webhook-Secret` authentication value (minimum 32 characters) | Generate random 256-bit key | - |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Optional bootstrap login (password minimum 12 characters) | Operator-provided credentials | - |
 | `EMAIL_SYNC_INTERVAL` | Auto-sync frequency (minutes) | Any positive integer | 15 |
 | `MAX_EMAILS_PER_SYNC` | Sync batch size | 50-500 emails | 100 |
 | `AI_MODEL` | OpenAI model to use | `gpt-3.5-turbo` or `gpt-4` | `gpt-3.5-turbo` |
