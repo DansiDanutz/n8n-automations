@@ -26,6 +26,7 @@ purchase = source("purchase-webhook/main.py")
 email_main = source("ai-email-assistant/backend/main.py")
 email_auth = source("ai-email-assistant/backend/services/auth_service.py")
 appointment = source("appointment-booking-system/main.py")
+social = source("social-media-auto-poster/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -50,6 +51,10 @@ relay_docker = (ROOT / "webhook-relay-logger/Dockerfile").read_text()
 email_env = (ROOT / "ai-email-assistant/.env.example").read_text()
 email_requirements = (ROOT / "ai-email-assistant/backend/requirements.txt").read_text()
 email_docker = (ROOT / "ai-email-assistant/Dockerfile").read_text()
+social_env = (ROOT / "social-media-auto-poster/.env.example").read_text()
+social_requirements = (ROOT / "social-media-auto-poster/requirements.txt").read_text()
+social_docker = (ROOT / "social-media-auto-poster/Dockerfile").read_text()
+social_setup = (ROOT / "social-media-auto-poster/setup.sh").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -146,6 +151,27 @@ for unused in ("passlib", "python-jose", "numpy", "scikit-learn", "spacy"):
         failures.append(f"email assistant must remove unused dependency {unused}")
 require(email_env, "WEBHOOK_SECRET=replace-with-at-least-32-random-characters", "email template must require a strong webhook secret")
 require(email_docker, "pip>=26.1.2", "email container must upgrade pip past PYSEC-2026-196")
+require(social, 'required_secret("API_KEY", 32)', "social poster must require a strong control-plane key")
+require(social, 'request.url.path not in {"/", "/health"}', "social poster must authenticate non-health routes")
+require(social, 'request.headers.get("X-API-Key", "")', "social poster must read X-API-Key")
+require(social, "hmac.compare_digest", "social poster API-key checks must be timing safe")
+if 'allow_origins=["*"]' in social:
+    failures.append("social poster must not use wildcard credentialed CORS")
+require(social_env, "API_KEY=replace-with-at-least-32-random-characters", "social poster template must require a strong API key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "apscheduler==3.11.2",
+    "tweepy==4.16.0",
+    "sqlalchemy==2.0.51",
+):
+    require(social_requirements, expected, f"social poster must pin audited dependency {expected}")
+for unused in ("python-multipart", "sqlite3"):
+    if unused in social_requirements:
+        failures.append(f"social poster must remove unused dependency {unused}")
+require(social_docker, "pip>=26.1.2", "social poster container must upgrade pip past PYSEC-2026-196")
+require(social_setup, "pip>=26.1.2", "social poster setup must upgrade pip past PYSEC-2026-196")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")

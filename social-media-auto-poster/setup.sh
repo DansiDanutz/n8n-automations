@@ -36,7 +36,8 @@ source venv/bin/activate
 
 # Install requirements
 echo "📥 Installing Python packages..."
-pip install -r requirements.txt
+python -m pip install --upgrade "pip>=26.1.2"
+python -m pip install -r requirements.txt
 
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -121,6 +122,6 @@ echo "- GET /analytics - View posting analytics"
 echo "- GET /platforms - Check platform configuration status"
 echo ""
 echo "Example curl command to schedule a post:"
-echo 'curl -X POST "http://localhost:8000/posts" -H "Content-Type: application/json" -d '\''{"content": "Hello social media! 🚀", "platforms": ["twitter"], "scheduled_time": "2024-12-25T10:00:00Z"}'\'''
+echo 'curl -X POST "http://localhost:8000/posts" -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" -d '\''{"content": "Hello social media! 🚀", "platforms": ["twitter"], "scheduled_time": "2027-12-25T10:00:00Z"}'\'''
 echo ""
 echo "Note: Only Twitter posting is fully implemented. Instagram and LinkedIn are placeholders requiring additional API setup."

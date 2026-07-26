@@ -1,9 +1,6 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
-apscheduler==3.10.4
-requests==2.31.0
-tweepy==4.14.0
-sqlalchemy==2.0.23
-sqlite3
+fastapi==0.140.0
+uvicorn[standard]==0.51.0
+pydantic==2.13.4
+apscheduler==3.11.2
+tweepy==4.16.0
+sqlalchemy==2.0.51

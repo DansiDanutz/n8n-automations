@@ -29,6 +29,8 @@ Automates your social media presence with AI-generated captions, optimal schedul
 
 ## 📡 API Endpoints
 
+All post, analytics, and platform endpoints require `X-API-Key: $API_KEY`.
+
 | Method | Endpoint | Description | Example |
 |--------|----------|-------------|---------|
 | POST | `/api/generate-content` | Generate AI content for platforms | `curl -X POST -H "Content-Type: application/json" -d '{"prompt":"Product launch announcement","platforms":["twitter","linkedin"],"tone":"excited"}' http://localhost:3000/api/generate-content` |
@@ -51,6 +53,8 @@ Automates your social media presence with AI-generated captions, optimal schedul
 
 | Variable | Description | Where to Get | Default |
 |----------|-------------|--------------|---------|
+| `API_KEY` | `X-API-Key` control-plane credential (minimum 32 characters) | Generate a random 256-bit value | - |
+| `CORS_ALLOWED_ORIGINS` | Credentialed browser origins | Comma-separated origins | `http://localhost:3000` |
 | `OPENAI_API_KEY` | AI content generation (required) | [OpenAI Platform](https://platform.openai.com/api-keys) | - |
 | `TWITTER_API_KEY` | Twitter app key (required) | [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard) | - |
 | `TWITTER_API_SECRET` | Twitter app secret (required) | Twitter Developer Portal | - |
