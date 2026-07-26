@@ -49,6 +49,8 @@ Catches, inspects, forwards, and replays webhooks with comprehensive debugging c
 
 ## 🔧 Configuration
 
+`JWT_SECRET_KEY` is required at startup and must contain at least 32 characters. Relay and replay targets must use HTTPS and resolve exclusively to public IP addresses; private, loopback, link-local, unresolved, and mixed DNS answers are rejected, and redirects are not followed. Authorization, cookie, proxy-authorization, host, content-length, and connection headers are stripped before forwarding.
+
 | Variable | Description | Where to Get | Default |
 |----------|-------------|--------------|---------|
 | `DATABASE_URL` | PostgreSQL connection | `postgresql://user:password@localhost:5432/webhooks` | `sqlite:///webhooks.db` |

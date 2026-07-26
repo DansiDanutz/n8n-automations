@@ -1,7 +1,7 @@
 """
 Pydantic models for Webhook Relay & Logger API.
 """
-from pydantic import BaseModel, Field, HttpUrl, validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 from enum import Enum
@@ -67,6 +67,14 @@ class WebhookEndpoint(BaseModel):
     rate_limit: Optional[int] = Field(None, description="Rate limit per minute")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
     user_id: Optional[str] = Field(None, description="Owner user ID")
+
+    @field_validator("path", mode="before")
+    @classmethod
+    def validate_path(cls, value: str) -> str:
+        if not value.startswith('/'):
+            value = f'/{value}'
+        import re
+        return re.sub(r'[^a-zA-Z0-9\-_/]', '', value)
 
 class WebhookFilter(BaseModel):
     """Webhook filtering criteria."""
@@ -185,17 +193,3 @@ class APIError(BaseModel):
     detail: Optional[str] = Field(None, description="Error details")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
     webhook_id: Optional[str] = Field(None, description="Related webhook ID if applicable")
-
-# Validators
-@validator('path', pre=True, always=True)
-def validate_endpoint_path(cls, v):
-    """Validate endpoint path."""
-    if not v.startswith('/'):
-        v = f'/{v}'
-    # Remove any invalid characters
-    import re
-    v = re.sub(r'[^a-zA-Z0-9\-_/]', '', v)
-    return v
-
-# Apply validator to WebhookEndpoint
-WebhookEndpoint.__validators__['validate_path'] = validator('path', pre=True, allow_reuse=True)(validate_endpoint_path)

@@ -34,6 +34,12 @@ limiter_docker = (ROOT / "api-rate-limiter/Dockerfile").read_text()
 purchase_env = (ROOT / "purchase-webhook/.env.example").read_text()
 purchase_requirements = (ROOT / "purchase-webhook/requirements.txt").read_text()
 purchase_docker = (ROOT / "purchase-webhook/Dockerfile").read_text()
+relay_service = source("webhook-relay-logger/backend/services/relay_service.py")
+relay_auth = source("webhook-relay-logger/backend/services/auth_service.py")
+relay_schemas = source("webhook-relay-logger/backend/models/schemas.py")
+relay_env = (ROOT / "webhook-relay-logger/.env.example").read_text()
+relay_requirements = (ROOT / "webhook-relay-logger/backend/requirements.txt").read_text()
+relay_docker = (ROOT / "webhook-relay-logger/Dockerfile").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -65,6 +71,31 @@ for expected in (
 if "python-multipart" in purchase_requirements:
     failures.append("purchase webhook must not include unused python-multipart")
 require(purchase_docker, "pip>=26.1.2", "purchase container must upgrade pip past PYSEC-2026-196")
+require(relay_auth, 'required_secret("JWT_SECRET_KEY", 32)', "webhook relay must reject missing or weak JWT secrets")
+if "webhook-relay-secret-change-in-production" in relay_auth:
+    failures.append("webhook relay must not ship a forgeable JWT secret")
+require(relay_service, "validate_public_target_url", "webhook relay must validate outbound destinations")
+require(relay_service, "address.is_global", "webhook relay must reject non-public and ambiguous DNS answers")
+require(relay_service, "loop.getaddrinfo", "webhook relay must resolve every target before delivery")
+require(relay_service, "allow_redirects=False", "webhook relay must not follow redirects")
+require(relay_service, "SENSITIVE_RELAY_HEADERS", "webhook relay must strip credentials and hop-by-hop headers")
+require(relay_env, "JWT_SECRET_KEY=replace-with-at-least-32-random-characters", "webhook relay template must require a strong JWT secret")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "python-multipart==0.0.32",
+    "aiohttp==3.14.3",
+    "PyJWT==2.13.0",
+    "pwdlib[argon2]==0.3.0",
+):
+    require(relay_requirements, expected, f"webhook relay must pin audited dependency {expected}")
+for unused in ("celery", "python-jose", "passlib", "redis", "jinja2", "asyncio"):
+    if unused in relay_requirements:
+        failures.append(f"webhook relay must not include unused dependency {unused}")
+require(relay_docker, "pip>=26.1.2", "webhook relay container must upgrade pip past PYSEC-2026-196")
+require(relay_docker, '"backend.main:app"', "webhook relay container must import the backend as a package")
+require(relay_schemas, '@field_validator("path", mode="before")', "webhook relay path validation must use the supported Pydantic API")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")
