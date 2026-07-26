@@ -47,7 +47,8 @@ source venv/bin/activate
 
 # Install requirements
 echo "📥 Installing Python packages..."
-pip install -r requirements.txt
+python -m pip install --upgrade "pip>=26.1.2"
+python -m pip install -r requirements.txt
 
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -129,6 +130,6 @@ echo "- GET /invoices/{id}/html - View invoice as HTML"
 echo "- GET /invoices - List all invoices"
 echo ""
 echo "Example curl command to create invoice:"
-echo 'curl -X POST "http://localhost:8000/invoices" -H "Content-Type: application/json" -d '\''{"client_name": "ACME Corp", "items": [{"description": "Web Development", "quantity": 1, "unit_price": 1000}]}'\'''
+echo 'curl -X POST "http://localhost:8000/invoices" -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" -d '\''{"client_name": "ACME Corp", "items": [{"description": "Web Development", "quantity": 1, "unit_price": 1000}]}'\'''
 echo ""
 echo "PDF Generation: Using weasyprint and reportlab for PDF export"

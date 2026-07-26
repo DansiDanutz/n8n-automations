@@ -27,6 +27,7 @@ email_main = source("ai-email-assistant/backend/main.py")
 email_auth = source("ai-email-assistant/backend/services/auth_service.py")
 appointment = source("appointment-booking-system/main.py")
 social = source("social-media-auto-poster/main.py")
+invoice = source("invoice-generator-api/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -42,6 +43,10 @@ appointment_env = (ROOT / "appointment-booking-system/.env.example").read_text()
 appointment_requirements = (ROOT / "appointment-booking-system/requirements.txt").read_text()
 appointment_docker = (ROOT / "appointment-booking-system/Dockerfile").read_text()
 appointment_setup = (ROOT / "appointment-booking-system/setup.sh").read_text()
+invoice_env = (ROOT / "invoice-generator-api/.env.example").read_text()
+invoice_requirements = (ROOT / "invoice-generator-api/requirements.txt").read_text()
+invoice_docker = (ROOT / "invoice-generator-api/Dockerfile").read_text()
+invoice_setup = (ROOT / "invoice-generator-api/setup.sh").read_text()
 relay_service = source("webhook-relay-logger/backend/services/relay_service.py")
 relay_auth = source("webhook-relay-logger/backend/services/auth_service.py")
 relay_schemas = source("webhook-relay-logger/backend/models/schemas.py")
@@ -107,6 +112,27 @@ for unused in ("python-multipart", "requests"):
         failures.append(f"appointment service must remove unused dependency {unused}")
 require(appointment_docker, "pip>=26.1.2", "appointment container must upgrade pip past PYSEC-2026-196")
 require(appointment_setup, "pip>=26.1.2", "appointment setup must upgrade pip past PYSEC-2026-196")
+require(invoice, 'required_secret("API_KEY", 32)', "invoice API must require a strong control-plane key")
+require(invoice, 'request.url.path not in {"/", "/health"}', "invoice API must authenticate invoice routes")
+require(invoice, 'request.headers.get("X-API-Key", "")', "invoice API must read X-API-Key")
+require(invoice, "hmac.compare_digest", "invoice API-key checks must be timing safe")
+require(invoice, "Environment(autoescape=True)", "invoice HTML must autoescape stored fields")
+if 'allow_origins=["*"]' in invoice:
+    failures.append("invoice API must not use wildcard credentialed CORS")
+require(invoice_env, "API_KEY=replace-with-at-least-32-random-characters", "invoice template must require a strong API key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "jinja2==3.1.6",
+    "reportlab==5.0.0",
+):
+    require(invoice_requirements, expected, f"invoice API must pin audited dependency {expected}")
+for unused in ("python-multipart", "sqlite3", "weasyprint"):
+    if unused in invoice_requirements:
+        failures.append(f"invoice API must remove unused dependency {unused}")
+require(invoice_docker, "pip>=26.1.2", "invoice container must upgrade pip past PYSEC-2026-196")
+require(invoice_setup, "pip>=26.1.2", "invoice setup must upgrade pip past PYSEC-2026-196")
 require(relay_auth, 'required_secret("JWT_SECRET_KEY", 32)', "webhook relay must reject missing or weak JWT secrets")
 if "webhook-relay-secret-change-in-production" in relay_auth:
     failures.append("webhook relay must not ship a forgeable JWT secret")
