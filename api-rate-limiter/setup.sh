@@ -25,6 +25,7 @@ source venv/bin/activate 2>/dev/null || true
 
 # Install dependencies
 echo "📦 Installing dependencies..."
+python -m pip install -q --upgrade 'pip>=26.1.2'
 pip install -q -r requirements.txt
 echo "✅ Dependencies installed"
 

@@ -5,6 +5,7 @@ A visual dashboard and API for managing, monitoring, and debugging scheduled tas
 """
 
 import os
+import hmac
 import json
 import sqlite3
 import subprocess
@@ -14,9 +15,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
@@ -28,6 +29,16 @@ DB_PATH = os.getenv("DB_PATH", "./cron_jobs.db")
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 MAX_LOG_LINES = int(os.getenv("MAX_LOG_LINES", "100"))
 TIMEZONE = os.getenv("TIMEZONE", "UTC")
+
+
+def required_secret(name: str, minimum_length: int = 1) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be configured with at least {minimum_length} characters")
+    return value
+
+
+API_KEY = required_secret("API_KEY", 32)
 
 # ─── Database ───
 def init_db():
@@ -139,6 +150,15 @@ app = FastAPI(
     version="1.0.0",
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def authenticate_control_plane(request: Request, call_next):
+    if request.url.path not in {"/", "/health"}:
+        supplied_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(supplied_key.encode(), API_KEY.encode()):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
 
 @app.get("/")
 async def root():

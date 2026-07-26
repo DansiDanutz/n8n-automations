@@ -46,6 +46,8 @@ API_KEY=your-api-key
 PORT=8000
 ```
 
+Set `ADMIN_API_KEY` to at least 32 random characters before startup. Administrative routes require it through the configured API-key header or a bearer token; the service no longer supplies a default credential.
+
 ## 🐳 Docker
 
 ```bash

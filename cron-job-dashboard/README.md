@@ -46,6 +46,8 @@ API_KEY=your-api-key
 PORT=8000
 ```
 
+Set `API_KEY` to at least 32 random characters. Every route except `/` and `/health` requires it in the `X-API-Key` header; this includes job creation, command execution, logs, statistics, the dashboard, and API documentation.
+
 ## 🐳 Docker
 
 ```bash
