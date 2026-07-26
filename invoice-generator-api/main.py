@@ -6,36 +6,29 @@ A FastAPI-based invoice generation system with PDF export capabilities.
 
 import os
 import sqlite3
-import json
+import hmac
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from pathlib import Path
-from decimal import Decimal
 import uuid
+from xml.sax.saxutils import escape as xml_escape
 
-from fastapi import FastAPI, HTTPException, Depends, Response
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 import uvicorn
 from contextlib import asynccontextmanager
-from jinja2 import Template
+from jinja2 import Environment
 
-# Try different PDF generation methods
-try:
-    from weasyprint import HTML, CSS
-    PDF_METHOD = "weasyprint"
-except ImportError:
-    try:
-        from reportlab.lib.pagesizes import letter, A4
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.units import inch
-        from reportlab.lib import colors
-        from io import BytesIO
-        PDF_METHOD = "reportlab"
-    except ImportError:
-        PDF_METHOD = "html"
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from io import BytesIO
+
+PDF_METHOD = "reportlab"
 
 # Configuration
 DB_PATH = os.getenv("DB_PATH", "./invoices.db")
@@ -45,6 +38,16 @@ TAX_RATE = float(os.getenv("DEFAULT_TAX_RATE", "0.0"))
 COMPANY_NAME = os.getenv("COMPANY_NAME", "Your Company")
 COMPANY_ADDRESS = os.getenv("COMPANY_ADDRESS", "123 Business St, City, State 12345")
 COMPANY_EMAIL = os.getenv("COMPANY_EMAIL", "billing@company.com")
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == "replace-with-at-least-32-random-characters":
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
+
+api_key = required_secret("API_KEY", 32)
 
 # Database setup
 def init_db():
@@ -102,9 +105,9 @@ class InvoiceCreate(BaseModel):
     client_email: Optional[str] = None
     client_address: Optional[str] = None
     due_date: Optional[str] = None
-    currency: str = Field(default="USD", regex="^[A-Z]{3}$")
+    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
     tax_rate: float = Field(default=0.0, ge=0, le=1)
-    items: List[InvoiceItem] = Field(..., min_items=1)
+    items: List[InvoiceItem] = Field(..., min_length=1)
     notes: Optional[str] = None
 
 class InvoiceUpdate(BaseModel):
@@ -114,7 +117,7 @@ class InvoiceUpdate(BaseModel):
     due_date: Optional[str] = None
     currency: Optional[str] = None
     tax_rate: Optional[float] = None
-    status: Optional[str] = Field(None, regex="^(draft|sent|paid|cancelled)$")
+    status: Optional[str] = Field(None, pattern="^(draft|sent|paid|cancelled)$")
     notes: Optional[str] = None
 
 class InvoiceResponse(BaseModel):
@@ -247,16 +250,16 @@ def generate_pdf_reportlab(invoice_data: Dict) -> bytes:
     
     # Company and invoice info
     company_info = f"""
-    <b>{COMPANY_NAME}</b><br/>
-    {COMPANY_ADDRESS}<br/>
-    {COMPANY_EMAIL}
+    <b>{xml_escape(COMPANY_NAME)}</b><br/>
+    {xml_escape(COMPANY_ADDRESS)}<br/>
+    {xml_escape(COMPANY_EMAIL)}
     """
     
     invoice_info = f"""
-    <b>Invoice #:</b> {invoice['invoice_number']}<br/>
-    <b>Issue Date:</b> {invoice['issue_date']}<br/>
-    <b>Due Date:</b> {invoice['due_date'] or 'N/A'}<br/>
-    <b>Status:</b> {invoice['status'].title()}
+    <b>Invoice #:</b> {xml_escape(invoice['invoice_number'])}<br/>
+    <b>Issue Date:</b> {xml_escape(invoice['issue_date'])}<br/>
+    <b>Due Date:</b> {xml_escape(invoice['due_date'] or 'N/A')}<br/>
+    <b>Status:</b> {xml_escape(invoice['status'].title())}
     """
     
     # Two column layout
@@ -275,11 +278,11 @@ def generate_pdf_reportlab(invoice_data: Dict) -> bytes:
     
     # Bill to
     story.append(Paragraph(f"<b>Bill To:</b>", styles['Normal']))
-    bill_to = f"{invoice['client_name']}<br/>"
+    bill_to = f"{xml_escape(invoice['client_name'])}<br/>"
     if invoice['client_email']:
-        bill_to += f"{invoice['client_email']}<br/>"
+        bill_to += f"{xml_escape(invoice['client_email'])}<br/>"
     if invoice['client_address']:
-        bill_to += f"{invoice['client_address']}"
+        bill_to += xml_escape(invoice['client_address'])
     story.append(Paragraph(bill_to, styles['Normal']))
     story.append(Spacer(1, 20))
     
@@ -320,17 +323,11 @@ def generate_pdf_reportlab(invoice_data: Dict) -> bytes:
     if invoice['notes']:
         story.append(Spacer(1, 20))
         story.append(Paragraph("<b>Notes:</b>", styles['Normal']))
-        story.append(Paragraph(invoice['notes'], styles['Normal']))
+        story.append(Paragraph(xml_escape(invoice['notes']), styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
     return buffer.read()
-
-def generate_pdf_weasyprint(invoice_data: Dict) -> bytes:
-    """Generate PDF using WeasyPrint."""
-    html_content = generate_invoice_html(invoice_data)
-    pdf = HTML(string=html_content).write_pdf()
-    return pdf
 
 def generate_invoice_html(invoice_data: Dict) -> str:
     """Generate HTML invoice."""
@@ -437,7 +434,7 @@ def generate_invoice_html(invoice_data: Dict) -> str:
 </html>
         """
     
-    template = Template(template_content)
+    template = Environment(autoescape=True).from_string(template_content)
     return template.render(
         invoice=invoice_data["invoice"],
         items=invoice_data["items"],
@@ -464,10 +461,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+@app.middleware("http")
+async def authenticate_control_plane(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path not in {"/", "/health"}:
+        provided_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(provided_key, api_key):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
+
 # CORS middleware
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -479,9 +490,13 @@ async def root():
     return {
         "message": "Invoice Generator API is running",
         "status": "healthy",
-        "pdf_method": PDF_METHOD,
         "version": "1.0.0"
     }
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 
 @app.post("/invoices", response_model=InvoiceResponse)
 async def create_invoice(invoice_data: InvoiceCreate):
@@ -497,8 +512,10 @@ async def create_invoice(invoice_data: InvoiceCreate):
             **invoice_with_items["invoice"],
             items=invoice_with_items["items"]
         )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Unable to create invoice")
 
 @app.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(invoice_id: int):
@@ -522,14 +539,7 @@ async def get_invoice_pdf(invoice_id: int):
         raise HTTPException(status_code=404, detail="Invoice not found")
     
     try:
-        if PDF_METHOD == "weasyprint":
-            pdf_content = generate_pdf_weasyprint(invoice_with_items)
-        elif PDF_METHOD == "reportlab":
-            pdf_content = generate_pdf_reportlab(invoice_with_items)
-        else:
-            # Fallback to HTML
-            html_content = generate_invoice_html(invoice_with_items)
-            return HTMLResponse(content=html_content)
+        pdf_content = generate_pdf_reportlab(invoice_with_items)
         
         invoice_number = invoice_with_items["invoice"]["invoice_number"]
         filename = f"invoice_{invoice_number}.pdf"
@@ -557,8 +567,8 @@ async def get_invoice_html(invoice_id: int):
 async def list_invoices(
     status: Optional[str] = None,
     client_name: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ):
     """List invoices with optional filtering."""
     conn = get_db_connection()
@@ -604,7 +614,7 @@ async def update_invoice(invoice_id: int, update_data: InvoiceUpdate):
     update_fields = []
     params = []
     
-    for field, value in update_data.dict(exclude_unset=True).items():
+    for field, value in update_data.model_dump(exclude_unset=True).items():
         if value is not None:
             update_fields.append(f"{field} = ?")
             params.append(value)

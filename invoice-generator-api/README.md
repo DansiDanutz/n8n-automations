@@ -28,6 +28,8 @@ Creates beautiful, branded invoices programmatically with automatic tax calculat
 
 ## 📡 API Endpoints
 
+All invoice endpoints require `X-API-Key: $API_KEY`.
+
 | Method | Endpoint | Description | Example |
 |--------|----------|-------------|---------|
 | POST | `/api/v1/invoices` | Create new invoice | `curl -X POST -H "Content-Type: application/json" -d '{"client":{"name":"Acme Corp","email":"billing@acme.com"},"items":[{"description":"Web Design","quantity":1,"rate":500.00}]}' http://localhost:8000/api/v1/invoices` |
@@ -50,6 +52,8 @@ Creates beautiful, branded invoices programmatically with automatic tax calculat
 
 | Variable | Description | Where to Get | Default |
 |----------|-------------|--------------|---------|
+| `API_KEY` | `X-API-Key` credential (minimum 32 characters) | Generate a random 256-bit value | - |
+| `CORS_ALLOWED_ORIGINS` | Credentialed browser origins | Comma-separated origins | `http://localhost:3000` |
 | `DATABASE_URL` | Database connection string | Local: `sqlite:///./invoices.db` PostgreSQL: `postgresql://user:pass@localhost/db` | `sqlite:///./invoices.db` |
 | `SECRET_KEY` | API security key | Generate random string | - |
 | `COMPANY_NAME` | Your business name | Your business registration | - |

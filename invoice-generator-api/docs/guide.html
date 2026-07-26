@@ -109,6 +109,8 @@ nano .env</code></pre>
         <table>
             <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
             <tr><td><code>PORT</code></td><td>Server Configuration</td><td><code>8000</code></td></tr>
+<tr><td><code>API_KEY</code></td><td>Control-plane authentication</td><td><code>replace-with-at-least-32-random-characters</code></td></tr>
+<tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Credentialed browser origins</td><td><code>http://localhost:3000</code></td></tr>
 <tr><td><code>DB_PATH</code></td><td>Database Configuration</td><td><code>./invoices.db</code></td></tr>
 <tr><td><code>DEFAULT_CURRENCY</code></td><td>Invoice Configuration</td><td><code>USD</code></td></tr>
 <tr><td><code>DEFAULT_TAX_RATE</code></td><td>DEFAULT_TAX_RATE</td><td><code>0.0</code></td></tr>
@@ -131,56 +133,63 @@ nano .env</code></pre>
             <span class="method method-post">POST</span>
             <code>/invoices</code>
             <p>Create a new invoice.</p>
-            <pre><code>curl -X POST http://localhost:8000/invoices \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/invoices \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/invoices/{invoice_id}</code>
             <p>Get a specific invoice by ID.</p>
-            <pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/invoices/{invoice_id}/pdf</code>
             <p>Generate and return invoice as PDF.</p>
-            <pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id}/pdf \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id}/pdf \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/invoices/{invoice_id}/html</code>
             <p>Get invoice as HTML (useful for preview or fallback).</p>
-            <pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id}/html \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/invoices/{invoice_id}/html \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/invoices</code>
             <p>List invoices with optional filtering.</p>
-            <pre><code>curl -X GET http://localhost:8000/invoices \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/invoices \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-put">PUT</span>
             <code>/invoices/{invoice_id}</code>
             <p>Update an existing invoice.</p>
-            <pre><code>curl -X PUT http://localhost:8000/invoices/{invoice_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X PUT http://localhost:8000/invoices/{invoice_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-delete">DELETE</span>
             <code>/invoices/{invoice_id}</code>
             <p>Delete an invoice.</p>
-            <pre><code>curl -X DELETE http://localhost:8000/invoices/{invoice_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X DELETE http://localhost:8000/invoices/{invoice_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
 
