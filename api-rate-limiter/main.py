@@ -6,6 +6,7 @@ per-IP and per-API-key tracking, customizable limits, analytics, and alerts.
 """
 
 import os
+import hmac
 import time
 import json
 import hashlib
@@ -30,7 +31,16 @@ DEFAULT_WINDOW_SECONDS = int(os.getenv("DEFAULT_WINDOW_SECONDS", "60"))
 REDIS_URL = os.getenv("REDIS_URL", "")
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 API_KEY_HEADER = os.getenv("API_KEY_HEADER", "X-API-Key")
-ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "admin-secret-key")
+
+
+def required_secret(name: str, minimum_length: int = 1) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be configured with at least {minimum_length} characters")
+    return value
+
+
+ADMIN_API_KEY = required_secret("ADMIN_API_KEY", 32)
 
 # ─── In-Memory Store (Redis-compatible interface) ───
 class MemoryStore:
@@ -163,7 +173,7 @@ def get_rule_for_endpoint(endpoint: str) -> dict:
 def verify_admin(request: Request):
     """Verify admin API key."""
     key = request.headers.get(API_KEY_HEADER) or request.headers.get("Authorization", "").replace("Bearer ", "")
-    if key != ADMIN_API_KEY:
+    if not hmac.compare_digest(key.encode(), ADMIN_API_KEY.encode()):
         raise HTTPException(status_code=403, detail="Admin API key required")
 
 # ─── App ───
