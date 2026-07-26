@@ -65,7 +65,7 @@ source venv/bin/activate
 
 # Upgrade pip
 log_info "Upgrading pip..."
-pip install --upgrade pip
+python -m pip install --upgrade "pip>=26.1.2"
 
 # Install Python dependencies
 log_info "Installing Python dependencies..."
@@ -73,26 +73,6 @@ cd backend
 pip install -r requirements.txt
 cd ..
 log_success "Dependencies installed"
-
-# Download NLTK data
-log_info "Downloading NLTK data..."
-python3 -c "
-import nltk
-import os
-os.makedirs('nltk_data', exist_ok=True)
-nltk.data.path.append('./nltk_data')
-try:
-    nltk.download('punkt', download_dir='./nltk_data', quiet=True)
-    nltk.download('stopwords', download_dir='./nltk_data', quiet=True)
-    nltk.download('vader_lexicon', download_dir='./nltk_data', quiet=True)
-    print('NLTK data downloaded successfully')
-except Exception as e:
-    print(f'NLTK download warning: {e}')
-"
-
-# Try to download spaCy model
-log_info "Attempting to download spaCy model..."
-python3 -m spacy download en_core_web_sm || log_warning "spaCy model not available, will use fallback"
 
 # Setup environment file
 log_info "Setting up environment configuration..."
@@ -203,10 +183,8 @@ log_info "Systemd service file created at ai-email-assistant.service"
 # Test installation
 log_info "Testing installation..."
 python3 -c "
-import sys
-sys.path.append('./backend')
 try:
-    from main import app
+    from backend.main import app
     print('✅ Import test passed')
 except ImportError as e:
     print(f'❌ Import test failed: {e}')

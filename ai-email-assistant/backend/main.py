@@ -2,20 +2,20 @@
 AI Email Assistant API
 FastAPI application for intelligent email management and automation.
 """
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 import logging
+import hmac
 from contextlib import asynccontextmanager
 
 from .services.email_service import EmailService
 from .services.ai_service import AIService
-from .services.auth_service import AuthService
-from .database.db import get_db_session
+from .services.auth_service import AuthService, required_secret
 from .models.schemas import (
     EmailSummary, EmailReply, EmailCategory, 
     PriorityScore, SpamDetection, WebhookPayload
@@ -29,7 +29,14 @@ logger = logging.getLogger(__name__)
 email_service = EmailService()
 ai_service = AIService()
 auth_service = AuthService()
+webhook_secret = required_secret("WEBHOOK_SECRET", 32)
 security = HTTPBearer()
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -49,9 +56,14 @@ app = FastAPI(
 )
 
 # CORS middleware
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +76,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not user:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
     return user
+
+
+async def verify_webhook_secret(x_webhook_secret: str = Header(default="")) -> None:
+    if not hmac.compare_digest(x_webhook_secret, webhook_secret):
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
 
 # Root endpoints
 @app.get("/")
@@ -87,12 +105,20 @@ async def health():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
         "services": {
             "email": await email_service.health_check(),
             "ai": await ai_service.health_check()
         }
     }
+
+
+@app.post("/auth/token")
+async def create_token(credentials: LoginRequest):
+    user = await auth_service.authenticate_user(credentials.email, credentials.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"access_token": auth_service.create_access_token({"sub": user["email"]}), "token_type": "bearer"}
 
 # Email Management Endpoints
 @app.post("/emails/connect")
@@ -247,7 +273,10 @@ async def get_email_analytics(
 
 # Webhook Endpoints for n8n Integration
 @app.post("/webhooks/email-received")
-async def webhook_email_received(payload: WebhookPayload):
+async def webhook_email_received(
+    payload: WebhookPayload,
+    _: None = Depends(verify_webhook_secret),
+):
     """Webhook endpoint for new email notifications."""
     try:
         result = await email_service.process_webhook_email(payload)
@@ -258,11 +287,16 @@ async def webhook_email_received(payload: WebhookPayload):
 @app.post("/webhooks/bulk-process")
 async def webhook_bulk_process(
     background_tasks: BackgroundTasks,
-    payload: WebhookPayload
+    payload: WebhookPayload,
+    _: None = Depends(verify_webhook_secret),
 ):
     """Webhook endpoint for bulk processing trigger."""
     user_id = payload.data.get("user_id")
     limit = payload.data.get("limit", 50)
+    if not user_id:
+        raise HTTPException(status_code=422, detail="user_id is required")
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+        raise HTTPException(status_code=422, detail="limit must be an integer between 1 and 100")
     
     background_tasks.add_task(
         email_service.bulk_process_emails,

@@ -1,5 +1,7 @@
 #!/bin/bash
-cd backend
-source venv/bin/activate 2>/dev/null || python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt -q
-python main.py
+set -e
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade "pip>=26.1.2"
+python -m pip install -r backend/requirements.txt -q
+python -m backend.main

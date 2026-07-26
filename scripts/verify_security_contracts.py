@@ -23,6 +23,8 @@ def require(value: str, expected: str, message: str) -> None:
 cron = source("cron-job-dashboard/main.py")
 limiter = source("api-rate-limiter/main.py")
 purchase = source("purchase-webhook/main.py")
+email_main = source("ai-email-assistant/backend/main.py")
+email_auth = source("ai-email-assistant/backend/services/auth_service.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -40,6 +42,9 @@ relay_schemas = source("webhook-relay-logger/backend/models/schemas.py")
 relay_env = (ROOT / "webhook-relay-logger/.env.example").read_text()
 relay_requirements = (ROOT / "webhook-relay-logger/backend/requirements.txt").read_text()
 relay_docker = (ROOT / "webhook-relay-logger/Dockerfile").read_text()
+email_env = (ROOT / "ai-email-assistant/.env.example").read_text()
+email_requirements = (ROOT / "ai-email-assistant/backend/requirements.txt").read_text()
+email_docker = (ROOT / "ai-email-assistant/Dockerfile").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -80,6 +85,12 @@ require(relay_service, "loop.getaddrinfo", "webhook relay must resolve every tar
 require(relay_service, "allow_redirects=False", "webhook relay must not follow redirects")
 require(relay_service, "SENSITIVE_RELAY_HEADERS", "webhook relay must strip credentials and hop-by-hop headers")
 require(relay_env, "JWT_SECRET_KEY=replace-with-at-least-32-random-characters", "webhook relay template must require a strong JWT secret")
+require(email_auth, 'required_secret("JWT_SECRET_KEY", 32)', "email assistant must require a strong JWT secret")
+require(email_main, 'required_secret("WEBHOOK_SECRET", 32)', "email assistant must require a strong webhook secret")
+require(email_main, "hmac.compare_digest", "email webhook authentication must be timing safe")
+require(email_main, "Depends(verify_webhook_secret)", "email webhook routes must authenticate callers")
+if "demopass123" in email_auth:
+    failures.append("email assistant must not ship a demo password")
 for expected in (
     "fastapi==0.140.0",
     "uvicorn[standard]==0.51.0",
@@ -96,6 +107,19 @@ for unused in ("celery", "python-jose", "passlib", "redis", "jinja2", "asyncio")
 require(relay_docker, "pip>=26.1.2", "webhook relay container must upgrade pip past PYSEC-2026-196")
 require(relay_docker, '"backend.main:app"', "webhook relay container must import the backend as a package")
 require(relay_schemas, '@field_validator("path", mode="before")', "webhook relay path validation must use the supported Pydantic API")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "PyJWT==2.13.0",
+    "pwdlib[argon2]==0.3.0",
+):
+    require(email_requirements, expected, f"email assistant must pin audited dependency {expected}")
+for unused in ("passlib", "python-jose", "numpy", "scikit-learn", "spacy"):
+    if unused in email_requirements:
+        failures.append(f"email assistant must remove unused dependency {unused}")
+require(email_env, "WEBHOOK_SECRET=replace-with-at-least-32-random-characters", "email template must require a strong webhook secret")
+require(email_docker, "pip>=26.1.2", "email container must upgrade pip past PYSEC-2026-196")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")

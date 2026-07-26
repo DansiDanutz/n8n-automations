@@ -1,19 +1,11 @@
 """
 AI Service for email analysis, summarization, and reply generation.
 """
-import asyncio
 import logging
 import re
 import os
 from typing import List, Dict, Any, Optional
-from datetime import datetime
 import openai
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
-import spacy
 
 from ..models.schemas import (
     Email, EmailSummary, EmailReply, EmailCategory, 
@@ -27,11 +19,6 @@ class AIService:
     
     def __init__(self):
         self.openai_client = None
-        self.spam_classifier = None
-        self.category_classifier = None
-        self.vectorizer = None
-        self.sentiment_analyzer = None
-        self.nlp = None
         
     async def initialize(self):
         """Initialize AI service."""
@@ -45,52 +32,11 @@ class AIService:
             else:
                 logger.warning("OpenAI API key not found")
             
-            # Initialize NLTK components
-            try:
-                nltk.download('punkt', quiet=True)
-                nltk.download('stopwords', quiet=True)
-                nltk.download('vader_lexicon', quiet=True)
-                self.sentiment_analyzer = SentimentIntensityAnalyzer()
-            except Exception as e:
-                logger.warning(f"NLTK initialization failed: {e}")
-            
-            # Initialize spaCy (if available)
-            try:
-                self.nlp = spacy.load("en_core_web_sm")
-            except Exception as e:
-                logger.warning(f"spaCy model not found: {e}")
-            
-            # Initialize ML models
-            await self._initialize_classifiers()
-            
             logger.info("AI Service initialized successfully")
             
         except Exception as e:
             logger.error(f"AI Service initialization failed: {e}")
             raise
-    
-    async def _initialize_classifiers(self):
-        """Initialize ML classifiers."""
-        try:
-            # Initialize TF-IDF vectorizer
-            self.vectorizer = TfidfVectorizer(
-                max_features=5000,
-                stop_words='english',
-                lowercase=True,
-                ngram_range=(1, 2)
-            )
-            
-            # Initialize spam classifier (in production, load pre-trained model)
-            self.spam_classifier = MultinomialNB()
-            
-            # Initialize category classifier
-            self.category_classifier = MultinomialNB()
-            
-            # In production, you would load pre-trained models here
-            logger.info("ML classifiers initialized")
-            
-        except Exception as e:
-            logger.error(f"Classifier initialization failed: {e}")
     
     async def health_check(self) -> Dict[str, str]:
         """Check AI service health."""
@@ -98,9 +44,7 @@ class AIService:
             status = "healthy"
             components = {
                 "openai": "available" if self.openai_client else "unavailable",
-                "nltk": "available" if self.sentiment_analyzer else "unavailable",
-                "spacy": "available" if self.nlp else "unavailable",
-                "classifiers": "initialized" if self.spam_classifier else "not_initialized"
+                "fallback_analysis": "available",
             }
             return {"status": status, "components": components}
         except Exception as e:
@@ -223,14 +167,13 @@ class AIService:
             if any(keyword in content_lower for keyword in action_keywords):
                 action_required = True
             
-            # Sentiment analysis with NLTK (if available)
+            # Lightweight fallback sentiment analysis.
             sentiment = "neutral"
-            if self.sentiment_analyzer:
-                scores = self.sentiment_analyzer.polarity_scores(email.body[:500])
-                if scores['compound'] >= 0.05:
-                    sentiment = "positive"
-                elif scores['compound'] <= -0.05:
-                    sentiment = "negative"
+            words = set(re.findall(r"[a-z']+", email.body[:500].lower()))
+            if words & {"thanks", "great", "excellent", "happy", "appreciate"}:
+                sentiment = "positive"
+            elif words & {"angry", "bad", "failed", "problem", "urgent"}:
+                sentiment = "negative"
             
             # Extract key points (first sentence + subject)
             key_points = [email.subject]

@@ -3,45 +3,58 @@ Authentication service for AI Email Assistant.
 """
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 import os
 
 logger = logging.getLogger(__name__)
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "")
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
 
 class AuthService:
     """Service for user authentication and authorization."""
     
     def __init__(self):
-        self.secret_key = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+        self.secret_key = required_secret("JWT_SECRET_KEY", 32)
         self.algorithm = "HS256"
         self.access_token_expire_minutes = 30
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.password_hash = PasswordHash.recommended()
         
-        # Mock user database (in production, use real database)
-        self.users = {
-            "demo@example.com": {
-                "id": "user_123",
-                "email": "demo@example.com", 
-                "hashed_password": self.get_password_hash("demopass123"),
+        self.users = {}
+        admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+        admin_password = os.getenv("ADMIN_PASSWORD", "")
+        if bool(admin_email) != bool(admin_password):
+            raise RuntimeError("ADMIN_EMAIL and ADMIN_PASSWORD must be configured together")
+        if admin_email:
+            if len(admin_password) < 12:
+                raise RuntimeError("ADMIN_PASSWORD must be at least 12 characters")
+            self.users[admin_email] = {
+                "id": "admin",
+                "email": admin_email,
+                "hashed_password": self.get_password_hash(admin_password),
                 "is_active": True,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc),
             }
-        }
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify password against hash."""
-        return self.pwd_context.verify(plain_password, hashed_password)
+        return self.password_hash.verify(plain_password, hashed_password)
     
     def get_password_hash(self, password: str) -> str:
         """Generate password hash."""
-        return self.pwd_context.hash(password)
+        return self.password_hash.hash(password)
     
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate user with email and password."""
         try:
-            user = self.users.get(email)
+            user = self.users.get(email.strip().lower())
             if not user:
                 return None
             
@@ -57,7 +70,7 @@ class AuthService:
     def create_access_token(self, data: Dict[str, Any]) -> str:
         """Create JWT access token."""
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=self.access_token_expire_minutes)
         to_encode.update({"exp": expire})
         
         encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
@@ -79,31 +92,3 @@ class AuthService:
             
         except jwt.PyJWTError:
             return None
-    
-    async def register_user(self, email: str, password: str, first_name: str, last_name: str) -> Dict[str, Any]:
-        """Register new user."""
-        try:
-            if email in self.users:
-                raise ValueError("User already exists")
-            
-            user_id = f"user_{len(self.users) + 1}"
-            hashed_password = self.get_password_hash(password)
-            
-            user = {
-                "id": user_id,
-                "email": email,
-                "hashed_password": hashed_password,
-                "first_name": first_name,
-                "last_name": last_name,
-                "is_active": True,
-                "created_at": datetime.utcnow()
-            }
-            
-            self.users[email] = user
-            logger.info(f"User {email} registered successfully")
-            
-            return user
-            
-        except Exception as e:
-            logger.error(f"User registration failed: {e}")
-            raise
