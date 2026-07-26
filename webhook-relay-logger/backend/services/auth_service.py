@@ -2,22 +2,29 @@
 Authentication service for Webhook Relay & Logger.
 """
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 import os
 
 logger = logging.getLogger(__name__)
+
+
+def required_secret(name: str, minimum_length: int = 1) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be configured with at least {minimum_length} characters")
+    return value
 
 class AuthService:
     """Service for user authentication and authorization."""
     
     def __init__(self):
-        self.secret_key = os.getenv("JWT_SECRET_KEY", "webhook-relay-secret-change-in-production")
+        self.secret_key = required_secret("JWT_SECRET_KEY", 32)
         self.algorithm = "HS256"
         self.access_token_expire_minutes = 60
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.password_hash = PasswordHash.recommended()
         
         # Mock user database (in production, use real database)
         self.users = {
@@ -45,11 +52,11 @@ class AuthService:
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify password against hash."""
-        return self.pwd_context.verify(plain_password, hashed_password)
+        return self.password_hash.verify(plain_password, hashed_password)
     
     def get_password_hash(self, password: str) -> str:
         """Generate password hash."""
-        return self.pwd_context.hash(password)
+        return self.password_hash.hash(password)
     
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate user with email and password."""

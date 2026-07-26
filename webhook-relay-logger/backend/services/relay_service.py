@@ -9,6 +9,9 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import re
+import ipaddress
+import socket
+from urllib.parse import urlsplit
 
 from ..models.schemas import (
     RelayRule, WebhookPayload, RelayResult, RelayCondition,
@@ -16,6 +19,33 @@ from ..models.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+SENSITIVE_RELAY_HEADERS = {
+    "authorization",
+    "cookie",
+    "host",
+    "content-length",
+    "connection",
+    "proxy-authorization",
+}
+
+
+async def validate_public_target_url(value: str) -> str:
+    """Allow only HTTPS targets whose complete DNS answer is public."""
+    parsed = urlsplit(value)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
+        raise ValueError("relay target must be an HTTPS URL without credentials or fragments")
+    loop = asyncio.get_running_loop()
+    try:
+        answers = await loop.getaddrinfo(parsed.hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise ValueError("relay target hostname could not be resolved") from exc
+    if not answers:
+        raise ValueError("relay target hostname has no DNS answers")
+    for answer in answers:
+        address = ipaddress.ip_address(answer[4][0])
+        if not address.is_global:
+            raise ValueError("relay target resolves to a non-public address")
+    return value
 
 class RelayService:
     """Service for webhook relaying and replay functionality."""
@@ -152,6 +182,8 @@ class RelayService:
             # Check target URLs are valid
             if not rule.target_urls:
                 raise ValueError("At least one target URL is required")
+            for target_url in rule.target_urls:
+                await validate_public_target_url(str(target_url))
             
             # Validate conditions
             for condition in rule.conditions:
@@ -410,7 +442,11 @@ class RelayService:
         
         try:
             # Prepare request data
-            headers = webhook_data.headers.copy()
+            headers = {
+                key: value
+                for key, value in webhook_data.headers.items()
+                if key.lower() not in SENSITIVE_RELAY_HEADERS
+            }
             headers['Content-Type'] = 'application/json'
             headers['X-Webhook-Relay-Id'] = webhook_data.id
             headers['X-Webhook-Source'] = webhook_data.endpoint_id
@@ -424,13 +460,15 @@ class RelayService:
             # Make request with retries
             for attempt in range(rule.retry_attempts + 1):
                 try:
+                    safe_target_url = await validate_public_target_url(target_url)
                     timeout = aiohttp.ClientTimeout(total=rule.timeout_seconds)
                     async with self.session.request(
                         method=webhook_data.method,
-                        url=target_url,
+                        url=safe_target_url,
                         headers=headers,
                         data=body_data,
-                        timeout=timeout
+                        timeout=timeout,
+                        allow_redirects=False,
                     ) as response:
                         response_time = (datetime.utcnow() - start_time).total_seconds() * 1000
                         response_text = await response.text()
