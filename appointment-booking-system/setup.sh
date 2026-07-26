@@ -66,12 +66,12 @@ source venv/bin/activate
 
 # Upgrade pip
 print_status "Upgrading pip..."
-pip install --upgrade pip
+python -m pip install --upgrade "pip>=26.1.2"
 
 # Install requirements
 print_status "Installing Python dependencies..."
 if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
     print_status "Dependencies installed ✓"
 else
     print_error "requirements.txt not found!"
