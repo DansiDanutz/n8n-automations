@@ -46,6 +46,7 @@ STRIPE_SECRET_KEY=sk_live_your_actual_stripe_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 GITHUB_TOKEN=ghp_your_github_token
 GITHUB_OWNER=DansiDanutz
+MANAGEMENT_API_KEY=replace-with-at-least-32-random-characters
 ```
 
 ### 4. Run the Service
@@ -72,6 +73,8 @@ docker run -d -p 8000:8000 --env-file .env purchase-webhook
 - **GET** `/purchases` - List all purchases (supports `?email=` filter)
 - **GET** `/purchases/{id}` - Get specific purchase details
 - **GET** `/products/mappings` - View product-to-repo mappings
+
+Purchase management endpoints require `MANAGEMENT_API_KEY` in the `X-API-Key` header. Startup fails when the Stripe webhook secret, GitHub token, or management key is missing or too short. Stripe event IDs are deduplicated before fulfillment to prevent concurrent and retry replays from granting access twice within a running service instance.
 
 ## Product → Repository Mapping
 

@@ -17,6 +17,7 @@ import httpx
 import stripe
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 
@@ -39,9 +40,19 @@ PRODUCT_REPO_MAPPING = {
 
 # Environment variables
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET") 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_OWNER = os.getenv("GITHUB_OWNER", "DansiDanutz")
+
+
+def required_secret(name: str, minimum_length: int = 1) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be configured with at least {minimum_length} characters")
+    return value
+
+
+STRIPE_WEBHOOK_SECRET = required_secret("STRIPE_WEBHOOK_SECRET", 16)
+GITHUB_TOKEN = required_secret("GITHUB_TOKEN", 20)
+MANAGEMENT_API_KEY = required_secret("MANAGEMENT_API_KEY", 32)
 
 # Configure Stripe
 if STRIPE_SECRET_KEY:
@@ -49,6 +60,9 @@ if STRIPE_SECRET_KEY:
 
 # In-memory storage for purchases (replace with database in production)
 purchases_store: List[Dict] = []
+processed_event_ids: set[str] = set()
+inflight_event_ids: set[str] = set()
+event_lock = asyncio.Lock()
 
 class PurchaseRecord(BaseModel):
     """Purchase record model"""
@@ -76,10 +90,6 @@ class WebhookResponse(BaseModel):
 
 async def verify_stripe_signature(payload: bytes, sig_header: str) -> bool:
     """Verify Stripe webhook signature"""
-    if not STRIPE_WEBHOOK_SECRET:
-        logger.warning("STRIPE_WEBHOOK_SECRET not configured - skipping signature verification")
-        return True
-        
     try:
         stripe.Webhook.construct_event(
             payload, sig_header, STRIPE_WEBHOOK_SECRET
@@ -235,10 +245,19 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def authenticate_purchase_records(request: Request, call_next):
+    if request.url.path.startswith("/purchases"):
+        supplied_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(supplied_key.encode(), MANAGEMENT_API_KEY.encode()):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
 
 @app.get("/health")
 async def health_check():
@@ -268,17 +287,26 @@ async def stripe_webhook(request: Request):
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
     
-    event_type = event["type"]
+    event_id = event.get("id")
+    event_type = event.get("type")
+    if not isinstance(event_id, str) or not event_id or not isinstance(event_type, str):
+        raise HTTPException(status_code=400, detail="Invalid Stripe event")
     logger.info(f"Received Stripe event: {event_type}")
     
     if event_type == "checkout.session.completed":
-        session_data = event["data"]["object"]
-        
-        # Only process successful payments
-        if session_data.get("payment_status") == "paid":
-            try:
+        async with event_lock:
+            if event_id in processed_event_ids or event_id in inflight_event_ids:
+                return WebhookResponse(status="ignored", message="Stripe event already processed")
+            inflight_event_ids.add(event_id)
+
+        completed = False
+        try:
+            session_data = event["data"]["object"]
+
+            # Only process successful payments
+            if session_data.get("payment_status") == "paid":
                 purchase = await process_successful_payment(session_data)
-                
+                completed = True
                 return WebhookResponse(
                     status="success",
                     message="Purchase processed and GitHub access granted",
@@ -287,15 +315,21 @@ async def stripe_webhook(request: Request):
                     github_access_granted=purchase.github_access_granted
                 )
                 
-            except Exception as e:
-                logger.error(f"Error processing payment: {e}")
-                raise HTTPException(status_code=500, detail=f"Error processing payment: {str(e)}")
-        else:
             logger.info("Payment not completed, skipping GitHub access")
-            return WebhookResponse(
-                status="ignored",
-                message="Payment not completed"
-            )
+            completed = True
+            return WebhookResponse(status="ignored", message="Payment not completed")
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid checkout session")
+        except HTTPException:
+            raise
+        except Exception:
+            logger.exception("Error processing payment")
+            raise HTTPException(status_code=500, detail="Payment processing failed")
+        finally:
+            async with event_lock:
+                inflight_event_ids.discard(event_id)
+                if completed:
+                    processed_event_ids.add(event_id)
     
     else:
         logger.info(f"Ignoring event type: {event_type}")
