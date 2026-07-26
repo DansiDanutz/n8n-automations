@@ -28,6 +28,9 @@ Professional appointment booking system with real-time availability checking, em
 
 ## 📡 API Endpoints
 
+Administrative endpoints (`GET /bookings`, `POST /slots`, booking updates/cancellation,
+and `GET /stats`) require `X-API-Key: $ADMIN_API_KEY`.
+
 | Method | Endpoint | Description | Example |
 |--------|----------|-------------|---------|
 | POST | `/bookings` | Create new appointment | `curl -X POST -H "Content-Type: application/json" -d '{"client_name":"John Doe","client_email":"john@example.com","service_type":"consultation","date":"2024-03-15","time":"14:00","duration":60}' http://localhost:8000/bookings` |
@@ -68,7 +71,8 @@ Professional appointment booking system with real-time availability checking, em
 | `SMTP_USER` | Email username | Your email address | - |
 | `SMTP_PASSWORD` | Email password | App password for Gmail | - |
 | `DATABASE_URL` | Data storage | `sqlite:///bookings.db` or PostgreSQL | `sqlite:///bookings.db` |
-| `SECRET_KEY` | Security key | Generate random string | - |
+| `ADMIN_API_KEY` | Administrative API key | Generate at least 32 random characters | - |
+| `CORS_ALLOWED_ORIGINS` | Credentialed browser origins | Comma-separated origins | `http://localhost:3000` |
 
 ## 🐳 Docker Deployment
 ```yaml

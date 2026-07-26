@@ -25,6 +25,7 @@ limiter = source("api-rate-limiter/main.py")
 purchase = source("purchase-webhook/main.py")
 email_main = source("ai-email-assistant/backend/main.py")
 email_auth = source("ai-email-assistant/backend/services/auth_service.py")
+appointment = source("appointment-booking-system/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -36,6 +37,10 @@ limiter_docker = (ROOT / "api-rate-limiter/Dockerfile").read_text()
 purchase_env = (ROOT / "purchase-webhook/.env.example").read_text()
 purchase_requirements = (ROOT / "purchase-webhook/requirements.txt").read_text()
 purchase_docker = (ROOT / "purchase-webhook/Dockerfile").read_text()
+appointment_env = (ROOT / "appointment-booking-system/.env.example").read_text()
+appointment_requirements = (ROOT / "appointment-booking-system/requirements.txt").read_text()
+appointment_docker = (ROOT / "appointment-booking-system/Dockerfile").read_text()
+appointment_setup = (ROOT / "appointment-booking-system/setup.sh").read_text()
 relay_service = source("webhook-relay-logger/backend/services/relay_service.py")
 relay_auth = source("webhook-relay-logger/backend/services/auth_service.py")
 relay_schemas = source("webhook-relay-logger/backend/models/schemas.py")
@@ -76,6 +81,27 @@ for expected in (
 if "python-multipart" in purchase_requirements:
     failures.append("purchase webhook must not include unused python-multipart")
 require(purchase_docker, "pip>=26.1.2", "purchase container must upgrade pip past PYSEC-2026-196")
+require(appointment, 'required_secret("ADMIN_API_KEY", 32)', "appointment service must require a strong admin key")
+require(appointment, "hmac.compare_digest", "appointment admin-key checks must be timing safe")
+require(appointment, "Depends(require_admin)", "appointment administrative routes must authenticate callers")
+if 'allow_origins=["*"]' in appointment:
+    failures.append("appointment service must not use wildcard credentialed CORS")
+if '"client_name": booking["client_name"]' in appointment:
+    failures.append("public appointment availability must not disclose client names")
+require(appointment_env, "ADMIN_API_KEY=replace-with-at-least-32-random-characters", "appointment template must require a strong admin key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "python-dotenv==1.2.2",
+    "email-validator==2.3.0",
+):
+    require(appointment_requirements, expected, f"appointment service must pin audited dependency {expected}")
+for unused in ("python-multipart", "requests"):
+    if unused in appointment_requirements:
+        failures.append(f"appointment service must remove unused dependency {unused}")
+require(appointment_docker, "pip>=26.1.2", "appointment container must upgrade pip past PYSEC-2026-196")
+require(appointment_setup, "pip>=26.1.2", "appointment setup must upgrade pip past PYSEC-2026-196")
 require(relay_auth, 'required_secret("JWT_SECRET_KEY", 32)', "webhook relay must reject missing or weak JWT secrets")
 if "webhook-relay-secret-change-in-production" in relay_auth:
     failures.append("webhook relay must not ship a forgeable JWT secret")

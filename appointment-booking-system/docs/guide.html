@@ -122,7 +122,7 @@ nano .env</code></pre>
 <tr><td><code>SMTP_PASSWORD</code></td><td>SMTP_PASSWORD</td><td><code>your_app_password</code></td></tr>
 <tr><td><code>FROM_EMAIL</code></td><td>FROM_EMAIL</td><td><code>your_email@gmail.com</code></td></tr>
 <tr><td><code>DATABASE_URL</code></td><td>Database (optional - uses in-memory by default)</td><td><code>sqlite:///bookings.db</code></td></tr>
-<tr><td><code>SECRET_KEY</code></td><td>Security</td><td><code>your_secret_key_here</code></td></tr>
+<tr><td><code>ADMIN_API_KEY</code></td><td>Security</td><td><code>replace-with-at-least-32-random-characters</code></td></tr>
 <tr><td><code>ADMIN_EMAIL</code></td><td>ADMIN_EMAIL</td><td><code>admin@yourcompany.com</code></td></tr>
 <tr><td><code>WORKING_HOURS_MONDAY</code></td><td>Working Hours (JSON format)</td><td><code>{"start": "09:00", "end": "17:00"}</code></td></tr>
 <tr><td><code>WORKING_HOURS_TUESDAY</code></td><td>WORKING_HOURS_TUESDAY</td><td><code>{"start": "09:00", "end": "17:00"}</code></td></tr>
@@ -157,8 +157,9 @@ nano .env</code></pre>
             <span class="method method-get">GET</span>
             <code>/bookings</code>
             <p>Create a new time slot</p>
-            <pre><code>curl -X GET http://localhost:8000/bookings \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/bookings \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
@@ -173,32 +174,36 @@ nano .env</code></pre>
             <span class="method method-post">POST</span>
             <code>/slots</code>
             <p>Create a new time slot</p>
-            <pre><code>curl -X POST http://localhost:8000/slots \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/slots \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-delete">DELETE</span>
             <code>/bookings/{booking_id}</code>
             <p>Cancel a booking</p>
-            <pre><code>curl -X DELETE http://localhost:8000/bookings/{booking_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X DELETE http://localhost:8000/bookings/{booking_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-put">PUT</span>
             <code>/bookings/{booking_id}</code>
             <p>Update an existing booking</p>
-            <pre><code>curl -X PUT http://localhost:8000/bookings/{booking_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X PUT http://localhost:8000/bookings/{booking_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/stats</code>
             <p>Get booking statistics</p>
-            <pre><code>curl -X GET http://localhost:8000/stats \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/stats \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $ADMIN_API_KEY"</code></pre>
         </div>
 
 

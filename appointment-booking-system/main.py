@@ -6,32 +6,57 @@ Complete appointment booking and scheduling system
 
 import os
 import uuid
-from datetime import datetime, timedelta, time
+import hmac
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, time, timezone
 from typing import List, Optional, Dict, Any
-import json
-from email.mime.text import MimeType
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Query, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, Field
 import uvicorn
 
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
 
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "")
+    if len(value) < minimum_length:
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
+
+admin_api_key = required_secret("ADMIN_API_KEY", 32)
+
+
+async def require_admin(x_api_key: str = Header(default="")) -> None:
+    if not hmac.compare_digest(x_api_key, admin_api_key):
+        raise HTTPException(status_code=401, detail="Invalid admin API key")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await create_default_time_slots()
+    yield
+
+
 app = FastAPI(
     title="Appointment Booking System",
     description="Professional appointment booking and scheduling service",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,7 +107,7 @@ class TimeSlotRequest(BaseModel):
     start_time: str  # HH:MM
     end_time: str  # HH:MM
     duration: int = 60  # minutes
-    service_types: List[str] = ["general"]
+    service_types: List[str] = Field(default_factory=lambda: ["general"])
     max_bookings: int = 1
 
 class BookingResponse(BaseModel):
@@ -177,15 +202,9 @@ async def create_default_time_slots():
                     "duration": 60,
                     "service_types": ["consultation", "meeting", "appointment"],
                     "max_bookings": 1,
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 }
             current_time += timedelta(hours=1)
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize default data on startup"""
-    await create_default_time_slots()
-    print("🚀 Appointment Booking System started")
 
 @app.get("/health")
 async def health_check():
@@ -193,10 +212,8 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "Appointment Booking System",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0",
-        "total_bookings": len(bookings_db),
-        "available_slots": len(time_slots_db)
     }
 
 @app.post("/bookings", response_model=BookingResponse)
@@ -232,8 +249,8 @@ async def create_booking(booking: BookingRequest, background_tasks: BackgroundTa
         "duration": booking.duration,
         "notes": booking.notes,
         "status": "confirmed",
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     bookings_db[booking_id] = new_booking
@@ -248,7 +265,8 @@ async def create_booking(booking: BookingRequest, background_tasks: BackgroundTa
 async def get_bookings(
     date: Optional[str] = Query(None, description="Filter by date (YYYY-MM-DD)"),
     status: Optional[str] = Query(None, description="Filter by status"),
-    client_email: Optional[str] = Query(None, description="Filter by client email")
+    client_email: Optional[str] = Query(None, description="Filter by client email"),
+    _admin: None = Depends(require_admin),
 ):
     """Get all bookings with optional filters"""
     
@@ -298,11 +316,8 @@ async def get_availability(date: str = Query(..., description="Date in YYYY-MM-D
         }
         
         if is_booked:
-            booking = next(b for b in date_bookings if b["time"] == slot_time)
             slot_info.update({
-                "booking_id": booking["id"],
-                "client_name": booking["client_name"],
-                "service_type": booking["service_type"]
+                "status": "unavailable",
             })
             booked_slots.append(slot_info)
         else:
@@ -316,7 +331,7 @@ async def get_availability(date: str = Query(..., description="Date in YYYY-MM-D
     )
 
 @app.post("/slots")
-async def create_time_slot(slot: TimeSlotRequest):
+async def create_time_slot(slot: TimeSlotRequest, _admin: None = Depends(require_admin)):
     """Create a new time slot"""
     
     if not validate_date_format(slot.date):
@@ -337,7 +352,7 @@ async def create_time_slot(slot: TimeSlotRequest):
         "duration": slot.duration,
         "service_types": slot.service_types,
         "max_bookings": slot.max_bookings,
-        "created_at": datetime.utcnow().isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat()
     }
     
     return {
@@ -347,7 +362,11 @@ async def create_time_slot(slot: TimeSlotRequest):
     }
 
 @app.delete("/bookings/{booking_id}")
-async def cancel_booking(booking_id: str, background_tasks: BackgroundTasks):
+async def cancel_booking(
+    booking_id: str,
+    background_tasks: BackgroundTasks,
+    _admin: None = Depends(require_admin),
+):
     """Cancel a booking"""
     
     if booking_id not in bookings_db:
@@ -355,7 +374,7 @@ async def cancel_booking(booking_id: str, background_tasks: BackgroundTasks):
     
     booking = bookings_db[booking_id]
     booking["status"] = "cancelled"
-    booking["updated_at"] = datetime.utcnow().isoformat()
+    booking["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     # Send cancellation email
     background_tasks.add_task(send_email_reminder, booking, background_tasks)
@@ -367,7 +386,12 @@ async def cancel_booking(booking_id: str, background_tasks: BackgroundTasks):
     }
 
 @app.put("/bookings/{booking_id}", response_model=BookingResponse)
-async def update_booking(booking_id: str, update_data: BookingUpdate, background_tasks: BackgroundTasks):
+async def update_booking(
+    booking_id: str,
+    update_data: BookingUpdate,
+    background_tasks: BackgroundTasks,
+    _admin: None = Depends(require_admin),
+):
     """Update an existing booking"""
     
     if booking_id not in bookings_db:
@@ -388,7 +412,7 @@ async def update_booking(booking_id: str, update_data: BookingUpdate, background
         if value is not None:
             booking[field] = value
     
-    booking["updated_at"] = datetime.utcnow().isoformat()
+    booking["updated_at"] = datetime.now(timezone.utc).isoformat()
     bookings_db[booking_id] = booking
     
     # Send update notification
@@ -397,7 +421,7 @@ async def update_booking(booking_id: str, update_data: BookingUpdate, background
     return BookingResponse(**booking)
 
 @app.get("/stats")
-async def get_booking_stats():
+async def get_booking_stats(_admin: None = Depends(require_admin)):
     """Get booking statistics"""
     
     total_bookings = len(bookings_db)
