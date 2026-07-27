@@ -36,7 +36,8 @@ source venv/bin/activate
 
 # Install requirements
 echo "📥 Installing Python packages..."
-pip install -r requirements.txt
+python -m pip install --upgrade "pip>=26.1.2"
+python -m pip install -r requirements.txt
 
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -121,4 +122,4 @@ echo "- POST /feedback - Submit feedback"
 echo "- GET /analytics - View analytics"
 echo ""
 echo "Example curl command:"
-echo 'curl -X POST "http://localhost:8000/chat" -H "Content-Type: application/json" -d '\''{"message": "Hello, I need help", "user_id": "test-user"}'\'''
+echo 'curl -X POST "http://localhost:8000/chat" -H "Content-Type: application/json" -H "X-API-Key: $API_KEY" -d '\''{"message": "Hello, I need help", "user_id": "test-user"}'\'''
