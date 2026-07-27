@@ -1,8 +1,12 @@
 """Database models for Voice AI Platform."""
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Text, Float, Integer, Boolean, DateTime, ForeignKey, JSON, TypeDecorator
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
+
+
+def utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class UUIDStr(TypeDecorator):
@@ -17,8 +21,6 @@ class UUIDStr(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return value
-from sqlalchemy.orm import relationship
-
 Base = declarative_base()
 
 
@@ -32,7 +34,7 @@ class Tenant(Base):
     api_key = Column(String(64), unique=True, nullable=False)
     plan = Column(String(50), default="free")  # free, starter, pro, enterprise
     stripe_customer_id = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     assistants = relationship("Assistant", back_populates="tenant", cascade="all, delete-orphan")
 
@@ -55,7 +57,7 @@ class Assistant(Base):
     max_duration = Column(Integer, default=600)
     is_active = Column(Boolean, default=True)
     widget_config = Column(JSON, default=dict)  # Colors, position, branding
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     tenant = relationship("Tenant", back_populates="assistants")
     conversations = relationship("Conversation", back_populates="assistant", cascade="all, delete-orphan")
@@ -70,7 +72,7 @@ class Conversation(Base):
     visitor_id = Column(String(255), nullable=True)  # Anonymous visitor tracking
     visitor_name = Column(String(255), nullable=True)
     visitor_email = Column(String(255), nullable=True)
-    started_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
     ended_at = Column(DateTime, nullable=True)
     duration_seconds = Column(Integer, default=0)
     message_count = Column(Integer, default=0)
@@ -93,6 +95,6 @@ class Message(Base):
     audio_duration = Column(Float, nullable=True)  # seconds
     tokens_used = Column(Integer, default=0)
     latency_ms = Column(Integer, nullable=True)  # Response time
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     conversation = relationship("Conversation", back_populates="messages")

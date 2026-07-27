@@ -46,7 +46,7 @@ async def text_to_speech(text: str, voice_id: str = "cjVigY5qzO86Huf0OWal") -> b
 
 
 async def llm_respond(messages: list, model: str = "gpt-4o-mini") -> dict:
-    """Get LLM response. Tries LiteLLM first, falls back to direct providers."""
+    """Get an LLM response from the configured provider."""
     start = time.time()
 
     # Determine API details
@@ -56,21 +56,6 @@ async def llm_respond(messages: list, model: str = "gpt-4o-mini") -> dict:
         base_url = "https://api.deepseek.com"
         model = "deepseek-chat"
 
-    # Try LiteLLM first
-    try:
-        from litellm import acompletion
-        resp = await acompletion(
-            model=f"deepseek/{model}" if "deepseek" in base_url else model,
-            messages=messages, max_tokens=300, temperature=0.7,
-            api_key=api_key, api_base=base_url if "deepseek" in base_url else None,
-        )
-        text = resp.choices[0].message.content
-        tokens = resp.usage.total_tokens if resp.usage else 0
-        return {"text": text, "tokens": tokens, "latency_ms": int((time.time() - start) * 1000)}
-    except Exception:
-        pass
-
-    # Fallback: direct HTTP
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
             f"{base_url}/chat/completions",

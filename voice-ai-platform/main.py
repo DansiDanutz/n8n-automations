@@ -2,20 +2,74 @@
 import os
 import uuid
 import base64
-from datetime import datetime
+import hashlib
+import hmac
+import html
+import json
+import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 from api.database import init_db, get_db
 from api.models import Tenant, Assistant, Conversation, Message
-from api.voice import voice_chat_pipeline, text_to_speech, llm_respond, speech_to_text
+from api.voice import voice_chat_pipeline, llm_respond
+
+PLACEHOLDER_SECRET = "replace-with-at-least-32-random-characters"
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+TALK_RATE_LIMIT = 20
+TALK_RATE_WINDOW_SECONDS = 60
+_talk_requests = defaultdict(deque)
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == PLACEHOLDER_SECRET or value.startswith("your_"):
+        raise RuntimeError(f"{name} must contain at least {minimum_length} non-placeholder characters")
+    return value
+
+
+BOOTSTRAP_API_KEY = required_secret("BOOTSTRAP_API_KEY", 32)
+SECRET_KEY = required_secret("SECRET_KEY", 32)
+ELEVENLABS_API_KEY = required_secret("ELEVENLABS_API_KEY", 16)
+if not (os.getenv("OPENAI_API_KEY", "").strip() or os.getenv("DEEPSEEK_API_KEY", "").strip()):
+    raise RuntimeError("At least one LLM provider key must be configured")
+
+
+def create_talk_token(slug: str) -> str:
+    return hmac.new(SECRET_KEY.encode(), slug.encode(), hashlib.sha256).hexdigest()
+
+
+def script_json(value: str) -> str:
+    return (json.dumps(value).replace("<", "\\u003c").replace(">", "\\u003e")
+            .replace("&", "\\u0026").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+
+
+def require_talk_token(request: Request, slug: str) -> None:
+    supplied = request.headers.get("X-Talk-Token", "")
+    if not hmac.compare_digest(supplied, create_talk_token(slug)):
+        raise HTTPException(401, "Invalid talk token")
+
+
+def enforce_talk_rate_limit(request: Request, slug: str) -> None:
+    now = time.monotonic()
+    client = request.client.host if request.client else "unknown"
+    bucket = _talk_requests[(client, slug)]
+    while bucket and now - bucket[0] >= TALK_RATE_WINDOW_SECONDS:
+        bucket.popleft()
+    if len(bucket) >= TALK_RATE_LIMIT:
+        raise HTTPException(429, "Talk rate limit exceeded")
+    bucket.append(now)
 
 
 @asynccontextmanager
@@ -32,7 +86,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_origins=[origin.strip() for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
+    ).split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,32 +97,36 @@ app.add_middleware(
 # ── Schemas ──────────────────────────────────────────────
 
 class AssistantCreate(BaseModel):
-    name: str
-    system_prompt: str = "You are a helpful AI voice assistant. Keep responses concise (1-3 sentences) for natural conversation."
-    voice_id: str = "cjVigY5qzO86Huf0OWal"
-    voice_name: str = "Eric"
-    model: str = "gpt-4o-mini"
-    language: str = "en"
-    greeting: str = "Hello! How can I help you today?"
-    knowledge_base: Optional[str] = None
+    name: str = Field(min_length=1, max_length=100)
+    system_prompt: str = Field(
+        default="You are a helpful AI voice assistant. Keep responses concise (1-3 sentences) for natural conversation.",
+        min_length=1,
+        max_length=8000,
+    )
+    voice_id: str = Field(default="cjVigY5qzO86Huf0OWal", min_length=1, max_length=100)
+    voice_name: str = Field(default="Eric", min_length=1, max_length=100)
+    model: str = Field(default="gpt-4o-mini", min_length=1, max_length=100)
+    language: str = Field(default="en", min_length=2, max_length=10)
+    greeting: str = Field(default="Hello! How can I help you today?", max_length=500)
+    knowledge_base: Optional[str] = Field(default=None, max_length=20000)
 
 class AssistantUpdate(BaseModel):
-    name: Optional[str] = None
-    system_prompt: Optional[str] = None
-    voice_id: Optional[str] = None
-    model: Optional[str] = None
-    greeting: Optional[str] = None
-    knowledge_base: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    system_prompt: Optional[str] = Field(default=None, min_length=1, max_length=8000)
+    voice_id: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    model: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    greeting: Optional[str] = Field(default=None, max_length=500)
+    knowledge_base: Optional[str] = Field(default=None, max_length=20000)
     is_active: Optional[bool] = None
 
 class TextChatRequest(BaseModel):
-    message: str
-    visitor_id: Optional[str] = None
-    conversation_id: Optional[str] = None
+    message: str = Field(min_length=1, max_length=4000)
+    visitor_id: Optional[str] = Field(default=None, max_length=255)
+    conversation_id: Optional[str] = Field(default=None, max_length=36)
 
 class TenantCreate(BaseModel):
-    name: str
-    email: str
+    name: str = Field(min_length=1, max_length=255)
+    email: str = Field(min_length=3, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 # ── Auth helpers ─────────────────────────────────────────
@@ -91,7 +151,9 @@ def health():
 # ── Tenant Management ───────────────────────────────────
 
 @app.post("/api/tenants")
-def create_tenant(data: TenantCreate, db: Session = Depends(get_db)):
+def create_tenant(data: TenantCreate, request: Request, db: Session = Depends(get_db)):
+    if not hmac.compare_digest(request.headers.get("X-Bootstrap-Key", ""), BOOTSTRAP_API_KEY):
+        raise HTTPException(401, "Invalid bootstrap key")
     api_key = f"vai_{uuid.uuid4().hex[:32]}"
     tenant = Tenant(name=data.name, email=data.email, api_key=api_key)
     db.add(tenant)
@@ -104,7 +166,7 @@ def create_tenant(data: TenantCreate, db: Session = Depends(get_db)):
 
 @app.post("/api/assistants")
 def create_assistant(data: AssistantCreate, tenant: Tenant = Depends(get_tenant_by_api_key), db: Session = Depends(get_db)):
-    slug = f"{data.name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:6]}"
+    slug = f"assistant-{uuid.uuid4().hex[:16]}"
     assistant = Assistant(
         tenant_id=tenant.id, name=data.name, slug=slug,
         system_prompt=data.system_prompt, voice_id=data.voice_id,
@@ -133,7 +195,7 @@ def update_assistant(assistant_id: str, data: AssistantUpdate, tenant: Tenant = 
     assistant = db.query(Assistant).filter(Assistant.id == assistant_id, Assistant.tenant_id == tenant.id).first()
     if not assistant:
         raise HTTPException(404, "Assistant not found")
-    for k, v in data.dict(exclude_unset=True).items():
+    for k, v in data.model_dump(exclude_unset=True).items():
         setattr(assistant, k, v)
     db.commit()
     return {"status": "updated"}
@@ -155,10 +217,15 @@ def talk_page(slug: str, db: Session = Depends(get_db)):
     assistant = db.query(Assistant).filter(Assistant.slug == slug, Assistant.is_active == True).first()
     if not assistant:
         raise HTTPException(404, "Assistant not found or inactive")
+    safe_name = html.escape(assistant.name)
+    safe_greeting = html.escape(assistant.greeting or "")
+    slug_json = script_json(assistant.slug)
+    name_json = script_json(assistant.name)
+    token_json = script_json(create_talk_token(assistant.slug))
     return f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Talk to {assistant.name}</title>
+<title>Talk to {safe_name}</title>
 <style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; }}
@@ -179,22 +246,28 @@ h1 {{ font-size:1.5rem; margin-bottom:0.5rem; }}
 .greeting {{ background:#1e293b; border:1px solid #334155; padding:1rem; border-radius:12px; margin-bottom:1.5rem; }}
 </style></head><body>
 <div class="container">
-  <h1>🎙️ {assistant.name}</h1>
+  <h1>🎙️ {safe_name}</h1>
   <p class="subtitle">Tap to talk</p>
-  <div class="greeting">{assistant.greeting}</div>
+  <div class="greeting">{safe_greeting}</div>
   <button class="mic-btn idle" id="mic" onclick="toggleRecording()">🎤</button>
   <div class="status" id="status">Tap the microphone to start</div>
   <div class="messages" id="messages"></div>
 </div>
 <script>
-const SLUG = "{assistant.slug}";
+const SLUG = {slug_json};
+const ASSISTANT_NAME = {name_json};
+const TALK_TOKEN = {token_json};
 let recording = false, mediaRecorder = null, chunks = [], convId = null;
 const mic = document.getElementById('mic'), status = document.getElementById('status'), msgs = document.getElementById('messages');
 
 function addMsg(text, role) {{
   const d = document.createElement('div');
   d.className = 'msg ' + role;
-  d.innerHTML = '<div class="role">' + (role==='user'?'You':'{assistant.name}') + '</div>' + text;
+  const label = document.createElement('div');
+  label.className = 'role';
+  label.textContent = role === 'user' ? 'You' : ASSISTANT_NAME;
+  d.appendChild(label);
+  d.appendChild(document.createTextNode(text));
   msgs.appendChild(d);
   msgs.scrollTop = msgs.scrollHeight;
 }}
@@ -217,7 +290,7 @@ async function toggleRecording() {{
       form.append('audio', blob);
       if(convId) form.append('conversation_id', convId);
       try {{
-        const r = await fetch('/api/talk/' + SLUG + '/voice', {{method:'POST', body:form}});
+        const r = await fetch('/api/talk/' + encodeURIComponent(SLUG) + '/voice', {{method:'POST', headers:{{'X-Talk-Token':TALK_TOKEN}}, body:form}});
         const data = await r.json();
         if(data.error) {{ status.textContent = data.error; }}
         else {{
@@ -245,13 +318,20 @@ async function toggleRecording() {{
 
 
 @app.post("/api/talk/{slug}/voice")
-async def voice_chat(slug: str, audio: UploadFile = File(...), conversation_id: Optional[str] = Form(None), db: Session = Depends(get_db)):
+async def voice_chat(slug: str, request: Request, audio: UploadFile = File(...), conversation_id: Optional[str] = Form(None), db: Session = Depends(get_db)):
     """Public endpoint: voice in → transcript + AI response + audio out."""
     assistant = db.query(Assistant).filter(Assistant.slug == slug, Assistant.is_active == True).first()
     if not assistant:
         raise HTTPException(404, "Assistant not found")
 
-    audio_bytes = await audio.read()
+    require_talk_token(request, slug)
+    enforce_talk_rate_limit(request, slug)
+    if not (audio.content_type or "").startswith("audio/"):
+        raise HTTPException(415, "An audio upload is required")
+
+    audio_bytes = await audio.read(MAX_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(413, "Audio upload exceeds 10 MiB")
 
     # Build system prompt with knowledge base
     system = assistant.system_prompt
@@ -262,7 +342,10 @@ async def voice_chat(slug: str, audio: UploadFile = File(...), conversation_id: 
     history = []
     conv = None
     if conversation_id:
-        conv = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+        conv = db.query(Conversation).filter(
+            Conversation.id == conversation_id,
+            Conversation.assistant_id == assistant.id,
+        ).first()
         if conv:
             for msg in db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at).limit(20).all():
                 history.append({"role": msg.role, "content": msg.text})
@@ -299,11 +382,14 @@ async def voice_chat(slug: str, audio: UploadFile = File(...), conversation_id: 
 
 
 @app.post("/api/talk/{slug}/text")
-async def text_chat(slug: str, data: TextChatRequest, db: Session = Depends(get_db)):
+async def text_chat(slug: str, data: TextChatRequest, request: Request, db: Session = Depends(get_db)):
     """Public endpoint: text in → AI response (+ optional TTS)."""
     assistant = db.query(Assistant).filter(Assistant.slug == slug, Assistant.is_active == True).first()
     if not assistant:
         raise HTTPException(404, "Assistant not found")
+
+    require_talk_token(request, slug)
+    enforce_talk_rate_limit(request, slug)
 
     system = assistant.system_prompt
     if assistant.knowledge_base:
@@ -313,7 +399,10 @@ async def text_chat(slug: str, data: TextChatRequest, db: Session = Depends(get_
     history = []
     conv = None
     if data.conversation_id:
-        conv = db.query(Conversation).filter(Conversation.id == data.conversation_id).first()
+        conv = db.query(Conversation).filter(
+            Conversation.id == data.conversation_id,
+            Conversation.assistant_id == assistant.id,
+        ).first()
         if conv:
             for msg in db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at).limit(20).all():
                 history.append({"role": msg.role, "content": msg.text})
