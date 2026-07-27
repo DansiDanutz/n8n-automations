@@ -28,6 +28,7 @@ email_auth = source("ai-email-assistant/backend/services/auth_service.py")
 appointment = source("appointment-booking-system/main.py")
 social = source("social-media-auto-poster/main.py")
 invoice = source("invoice-generator-api/main.py")
+documents = source("ai-document-summarizer/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -60,6 +61,10 @@ social_env = (ROOT / "social-media-auto-poster/.env.example").read_text()
 social_requirements = (ROOT / "social-media-auto-poster/requirements.txt").read_text()
 social_docker = (ROOT / "social-media-auto-poster/Dockerfile").read_text()
 social_setup = (ROOT / "social-media-auto-poster/setup.sh").read_text()
+documents_env = (ROOT / "ai-document-summarizer/.env.example").read_text()
+documents_requirements = (ROOT / "ai-document-summarizer/requirements.txt").read_text()
+documents_docker = (ROOT / "ai-document-summarizer/Dockerfile").read_text()
+documents_setup = (ROOT / "ai-document-summarizer/setup.sh").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -198,6 +203,32 @@ for unused in ("python-multipart", "sqlite3"):
         failures.append(f"social poster must remove unused dependency {unused}")
 require(social_docker, "pip>=26.1.2", "social poster container must upgrade pip past PYSEC-2026-196")
 require(social_setup, "pip>=26.1.2", "social poster setup must upgrade pip past PYSEC-2026-196")
+require(documents, 'required_secret("API_KEY", 32)', "document summarizer must require a strong API key")
+require(documents, 'request.url.path not in {"/", "/health"}', "document summarizer must authenticate document routes")
+require(documents, 'request.headers.get("X-API-Key", "")', "document summarizer must read X-API-Key")
+require(documents, "hmac.compare_digest", "document API-key checks must be timing safe")
+require(documents, 'save_path = Path(UPLOAD_DIR) / f"{doc_id}{ext}"', "document uploads must use server-generated paths")
+require(documents, "hashlib.sha256(content).hexdigest()", "document deduplication must use a collision-resistant hash")
+if "INSERT OR IGNORE INTO documents" in documents:
+    failures.append("document uploads must not silently overwrite duplicate storage paths")
+if 'file.filename}' in documents:
+    failures.append("document uploads must not place client filenames in storage paths")
+if 'allow_origins=["*"]' in documents:
+    failures.append("document summarizer must not use wildcard CORS")
+require(documents_env, "API_KEY=replace-with-at-least-32-random-characters", "document template must require a strong API key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "pydantic==2.13.4",
+    "python-dotenv==1.2.2",
+    "openai==2.48.0",
+    "python-multipart==0.0.32",
+    "pypdf==6.14.2",
+    "python-docx==1.2.0",
+):
+    require(documents_requirements, expected, f"document summarizer must pin audited dependency {expected}")
+require(documents_docker, "pip>=26.1.2", "document container must upgrade pip past PYSEC-2026-196")
+require(documents_setup, "pip>=26.1.2", "document setup must upgrade pip past PYSEC-2026-196")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")

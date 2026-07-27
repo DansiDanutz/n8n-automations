@@ -109,6 +109,8 @@ nano .env</code></pre>
         <table>
             <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
             <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI</td><td><code>sk-your-key-here</code></td></tr>
+<tr><td><code>API_KEY</code></td><td>Document API authentication</td><td><code>replace-with-at-least-32-random-characters</code></td></tr>
+<tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Browser origins</td><td><code>http://localhost:3000</code></td></tr>
 <tr><td><code>OPENAI_MODEL</code></td><td>OPENAI_MODEL</td><td><code>gpt-3.5-turbo</code></td></tr>
 <tr><td><code>PORT</code></td><td>Server</td><td><code>8000</code></td></tr>
 <tr><td><code>DB_PATH</code></td><td>Storage</td><td><code>./summaries.db</code></td></tr>
@@ -138,56 +140,62 @@ nano .env</code></pre>
             <span class="method method-post">POST</span>
             <code>/upload</code>
             <p>Ask a question about an uploaded document.</p>
-            <pre><code>curl -X POST http://localhost:8000/upload \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/upload \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-post">POST</span>
             <code>/summarize/{document_id}</code>
             <p>Ask a question about an uploaded document.</p>
-            <pre><code>curl -X POST http://localhost:8000/summarize/{document_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/summarize/{document_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-post">POST</span>
             <code>/ask/{document_id}</code>
             <p>Ask a question about an uploaded document.</p>
-            <pre><code>curl -X POST http://localhost:8000/ask/{document_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/ask/{document_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/documents</code>
             <p>List all uploaded documents.</p>
-            <pre><code>curl -X GET http://localhost:8000/documents \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/documents \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/documents/{document_id}</code>
             <p>Get document details with all summaries and Q&A history.</p>
-            <pre><code>curl -X GET http://localhost:8000/documents/{document_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/documents/{document_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-delete">DELETE</span>
             <code>/documents/{document_id}</code>
             <p>Delete a document and its summaries.</p>
-            <pre><code>curl -X DELETE http://localhost:8000/documents/{document_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X DELETE http://localhost:8000/documents/{document_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/stats</code>
             <p>Get usage statistics.</p>
-            <pre><code>curl -X GET http://localhost:8000/stats \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/stats \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
 
