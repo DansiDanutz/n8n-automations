@@ -6,16 +6,14 @@ A FastAPI-based intelligent customer support system with OpenAI integration.
 
 import os
 import sqlite3
-import json
-import asyncio
-from datetime import datetime, timezone
+import hmac
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import openai
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from openai import OpenAI
 import uvicorn
 from contextlib import asynccontextmanager
@@ -26,6 +24,16 @@ KB_DIR = os.getenv("KB_DIR", "./knowledge_base")
 DB_PATH = os.getenv("DB_PATH", "./support_bot.db")
 PORT = int(os.getenv("PORT", "8000"))
 MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == "replace-with-at-least-32-random-characters":
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
+
+api_key = required_secret("API_KEY", 32)
 
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -130,14 +138,14 @@ A: Type "human" or "agent" and we'll connect you with our support team.
 
 # Pydantic models
 class ChatMessage(BaseModel):
-    message: str
-    user_id: str
+    message: str = Field(min_length=1, max_length=4000)
+    user_id: str = Field(min_length=1, max_length=128)
     conversation_id: Optional[int] = None
 
 class ChatResponse(BaseModel):
     response: str
     conversation_id: int
-    sources_used: List[str] = []
+    sources_used: List[str] = Field(default_factory=list)
     needs_human: bool = False
 
 class ConversationSummary(BaseModel):
@@ -152,8 +160,8 @@ class ConversationSummary(BaseModel):
 class FeedbackRequest(BaseModel):
     conversation_id: Optional[int] = None
     message_id: Optional[int] = None
-    rating: int  # 1-5 scale
-    comment: Optional[str] = None
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = Field(default=None, max_length=2000)
 
 # Database helpers
 def get_db_connection():
@@ -171,6 +179,7 @@ async def get_or_create_conversation(user_id: str, conversation_id: Optional[int
         cursor.execute("SELECT id FROM conversations WHERE id = ? AND user_id = ?", 
                       (conversation_id, user_id))
         if cursor.fetchone():
+            conn.close()
             return conversation_id
     
     # Create new conversation
@@ -266,10 +275,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+@app.middleware("http")
+async def authenticate_support_api(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path not in {"/", "/health"}:
+        provided_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(provided_key, api_key):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
+
 # CORS middleware
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -279,6 +302,11 @@ app.add_middleware(
 async def root():
     """Health check endpoint."""
     return {"message": "AI Customer Support Bot is running", "status": "healthy"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatMessage, background_tasks: BackgroundTasks):
@@ -313,7 +341,10 @@ async def chat(request: ChatMessage, background_tasks: BackgroundTasks):
     )
 
 @app.get("/conversations", response_model=List[ConversationSummary])
-async def get_conversations(user_id: Optional[str] = None, limit: int = 50):
+async def get_conversations(
+    user_id: Optional[str] = None,
+    limit: int = Query(default=50, ge=1, le=100),
+):
     """Get list of conversations."""
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -361,6 +392,7 @@ async def get_conversation_detail(conversation_id: int):
     conversation = cursor.fetchone()
     
     if not conversation:
+        conn.close()
         raise HTTPException(status_code=404, detail="Conversation not found")
     
     # Get messages
@@ -381,10 +413,6 @@ async def submit_feedback(feedback: FeedbackRequest):
     """Submit feedback for conversation or specific message."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Validate rating
-    if feedback.rating < 1 or feedback.rating > 5:
-        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
     
     # Insert feedback
     cursor.execute(

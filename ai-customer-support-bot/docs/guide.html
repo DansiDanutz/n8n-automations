@@ -107,6 +107,8 @@ nano .env</code></pre>
         <table>
             <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
             <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI Configuration</td><td><code>sk-your-openai-api-key-here</code></td></tr>
+<tr><td><code>API_KEY</code></td><td>Support API authentication</td><td><code>replace-with-at-least-32-random-characters</code></td></tr>
+<tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Credentialed browser origins</td><td><code>http://localhost:3000</code></td></tr>
 <tr><td><code>OPENAI_MODEL</code></td><td>OPENAI_MODEL</td><td><code>gpt-3.5-turbo</code></td></tr>
 <tr><td><code>PORT</code></td><td>Server Configuration</td><td><code>8000</code></td></tr>
 <tr><td><code>DB_PATH</code></td><td>Database Configuration</td><td><code>./support_bot.db</code></td></tr>
@@ -127,40 +129,45 @@ nano .env</code></pre>
             <span class="method method-post">POST</span>
             <code>/chat</code>
             <p>Handle chat messages and generate AI responses.</p>
-            <pre><code>curl -X POST http://localhost:8000/chat \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/conversations</code>
             <p>Get list of conversations.</p>
-            <pre><code>curl -X GET http://localhost:8000/conversations \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/conversations \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/conversations/{conversation_id}</code>
             <p>Get detailed conversation with all messages.</p>
-            <pre><code>curl -X GET http://localhost:8000/conversations/{conversation_id} \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/conversations/{conversation_id} \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-post">POST</span>
             <code>/feedback</code>
             <p>Submit feedback for conversation or specific message.</p>
-            <pre><code>curl -X POST http://localhost:8000/feedback \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X POST http://localhost:8000/feedback \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
         <div class="endpoint">
             <span class="method method-get">GET</span>
             <code>/analytics</code>
             <p>Get basic analytics about the support bot.</p>
-            <pre><code>curl -X GET http://localhost:8000/analytics \
-  -H "Content-Type: application/json"</code></pre>
+<pre><code>curl -X GET http://localhost:8000/analytics \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY"</code></pre>
         </div>
 
 

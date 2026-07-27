@@ -44,6 +44,8 @@ Automatically handles customer support across email, Telegram, and Slack using A
 
 | Variable | Description | Where to Get | Default |
 |----------|-------------|--------------|---------|
+| `API_KEY` | `X-API-Key` credential (minimum 32 characters) | Generate a random 256-bit value | - |
+| `CORS_ALLOWED_ORIGINS` | Credentialed browser origins | Comma-separated origins | `http://localhost:3000` |
 | `OPENAI_API_KEY` | AI response generation (required) | [OpenAI Platform](https://platform.openai.com/api-keys) | - |
 | `EMAIL_USER` | Support email address (required) | Your Gmail account | - |
 | `EMAIL_PASS` | Gmail app password (required) | [Google App Passwords](https://myaccount.google.com/apppasswords) | - |

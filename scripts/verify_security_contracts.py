@@ -29,6 +29,7 @@ appointment = source("appointment-booking-system/main.py")
 social = source("social-media-auto-poster/main.py")
 invoice = source("invoice-generator-api/main.py")
 documents = source("ai-document-summarizer/main.py")
+support = source("ai-customer-support-bot/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -48,6 +49,10 @@ invoice_env = (ROOT / "invoice-generator-api/.env.example").read_text()
 invoice_requirements = (ROOT / "invoice-generator-api/requirements.txt").read_text()
 invoice_docker = (ROOT / "invoice-generator-api/Dockerfile").read_text()
 invoice_setup = (ROOT / "invoice-generator-api/setup.sh").read_text()
+support_env = (ROOT / "ai-customer-support-bot/.env.example").read_text()
+support_requirements = (ROOT / "ai-customer-support-bot/requirements.txt").read_text()
+support_docker = (ROOT / "ai-customer-support-bot/Dockerfile").read_text()
+support_setup = (ROOT / "ai-customer-support-bot/setup.sh").read_text()
 relay_service = source("webhook-relay-logger/backend/services/relay_service.py")
 relay_auth = source("webhook-relay-logger/backend/services/auth_service.py")
 relay_schemas = source("webhook-relay-logger/backend/models/schemas.py")
@@ -138,6 +143,25 @@ for unused in ("python-multipart", "sqlite3", "weasyprint"):
         failures.append(f"invoice API must remove unused dependency {unused}")
 require(invoice_docker, "pip>=26.1.2", "invoice container must upgrade pip past PYSEC-2026-196")
 require(invoice_setup, "pip>=26.1.2", "invoice setup must upgrade pip past PYSEC-2026-196")
+require(support, 'required_secret("API_KEY", 32)', "support bot must require a strong API key")
+require(support, 'request.url.path not in {"/", "/health"}', "support bot must authenticate support routes")
+require(support, 'request.headers.get("X-API-Key", "")', "support bot must read X-API-Key")
+require(support, "hmac.compare_digest", "support API-key checks must be timing safe")
+if 'allow_origins=["*"]' in support:
+    failures.append("support bot must not use wildcard credentialed CORS")
+require(support_env, "API_KEY=replace-with-at-least-32-random-characters", "support template must require a strong API key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "openai==2.48.0",
+    "pydantic==2.13.4",
+):
+    require(support_requirements, expected, f"support bot must pin audited dependency {expected}")
+for unused in ("python-multipart", "sqlite3"):
+    if unused in support_requirements:
+        failures.append(f"support bot must remove unused dependency {unused}")
+require(support_docker, "pip>=26.1.2", "support container must upgrade pip past PYSEC-2026-196")
+require(support_setup, "pip>=26.1.2", "support setup must upgrade pip past PYSEC-2026-196")
 require(relay_auth, 'required_secret("JWT_SECRET_KEY", 32)', "webhook relay must reject missing or weak JWT secrets")
 if "webhook-relay-secret-change-in-production" in relay_auth:
     failures.append("webhook relay must not ship a forgeable JWT secret")
