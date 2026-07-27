@@ -34,6 +34,11 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 API_KEY_HEADER = os.getenv("API_KEY_HEADER", "X-API-Key")
 TRUSTED_PROXY_HOPS = max(0, int(os.getenv("TRUSTED_PROXY_HOPS", "0")))
+TRUSTED_PROXY_CIDRS = tuple(
+    value.strip()
+    for value in os.getenv("TRUSTED_PROXY_CIDRS", "").split(",")
+    if value.strip()
+)
 
 
 def required_secret(name: str, minimum_length: int = 1) -> str:
@@ -154,6 +159,7 @@ def get_client_key(request: Request) -> str:
         peer_ip,
         request.headers.get("X-Forwarded-For"),
         trusted_proxy_hops=TRUSTED_PROXY_HOPS,
+        trusted_proxy_cidrs=TRUSTED_PROXY_CIDRS,
     )
     return f"ip:{client_ip}"
 
@@ -414,4 +420,4 @@ if __name__ == "__main__":
     print(f"   Default limit: {DEFAULT_RATE_LIMIT} requests per {DEFAULT_WINDOW_SECONDS}s")
     print(f"   Dashboard: http://localhost:{PORT}/dashboard")
     print(f"   API docs: http://localhost:{PORT}/docs")
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=PORT, proxy_headers=False)

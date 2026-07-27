@@ -14,7 +14,10 @@ class ClientIdentityTests(unittest.TestCase):
     def test_untrusted_forwarding_header_cannot_replace_socket_peer(self):
         self.assertEqual(
             client_identity.resolve_client_ip(
-                "203.0.113.9", "198.51.100.7", trusted_proxy_hops=0
+                "203.0.113.9",
+                "198.51.100.7",
+                trusted_proxy_hops=0,
+                trusted_proxy_cidrs=(),
             ),
             "203.0.113.9",
         )
@@ -25,6 +28,7 @@ class ClientIdentityTests(unittest.TestCase):
                 "10.0.0.5",
                 "198.51.100.7, 192.0.2.12",
                 trusted_proxy_hops=1,
+                trusted_proxy_cidrs=("10.0.0.0/8",),
             ),
             "192.0.2.12",
         )
@@ -33,6 +37,7 @@ class ClientIdentityTests(unittest.TestCase):
                 "10.0.0.5",
                 "198.51.100.7, 192.0.2.12",
                 trusted_proxy_hops=2,
+                trusted_proxy_cidrs=("10.0.0.0/8",),
             ),
             "198.51.100.7",
         )
@@ -42,10 +47,24 @@ class ClientIdentityTests(unittest.TestCase):
             with self.subTest(forwarded=forwarded):
                 self.assertEqual(
                     client_identity.resolve_client_ip(
-                        "203.0.113.9", forwarded, trusted_proxy_hops=1
+                        "203.0.113.9",
+                        forwarded,
+                        trusted_proxy_hops=1,
+                        trusted_proxy_cidrs=("10.0.0.0/8",),
                     ),
                     "203.0.113.9",
                 )
+
+    def test_direct_clients_cannot_opt_into_forwarded_identity(self):
+        self.assertEqual(
+            client_identity.resolve_client_ip(
+                "203.0.113.9",
+                "198.51.100.7",
+                trusted_proxy_hops=1,
+                trusted_proxy_cidrs=("10.0.0.0/8",),
+            ),
+            "203.0.113.9",
+        )
 
 
 if __name__ == "__main__":
