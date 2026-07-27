@@ -22,11 +22,14 @@ Creates SEO-optimized blog posts, meta descriptions, and marketing content using
 3. Fill in API keys:
    - **OpenRouter API Key**: Get from [OpenRouter](https://openrouter.ai/keys) for multi-model access
    - **OpenAI API Key**: Alternative from [OpenAI Platform](https://platform.openai.com/api-keys)
+   - **API Key**: Generate at least 32 random characters for caller authentication
    - **SEO Tools API**: Optional for advanced keyword data
 4. Run `pip install -r requirements.txt` to install dependencies
 5. Test with `uvicorn main:app --reload` and visit `http://localhost:8000/docs`
 
 ## 📡 API Endpoints
+
+Except for `/health`, requests must include `X-API-Key: <API_KEY>`.
 
 | Method | Endpoint | Description | Example |
 |--------|----------|-------------|---------|
@@ -52,6 +55,8 @@ Creates SEO-optimized blog posts, meta descriptions, and marketing content using
 |----------|-------------|--------------|---------|
 | `OPENROUTER_API_KEY` | Multi-model AI access (recommended) | [OpenRouter Keys](https://openrouter.ai/keys) | - |
 | `OPENAI_API_KEY` | Direct OpenAI access (alternative) | [OpenAI Platform](https://platform.openai.com/api-keys) | - |
+| `API_KEY` | Caller authentication key (32+ random characters) | Generate locally | - |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins | Deployment configuration | `http://localhost:3000,http://localhost:8000` |
 | `DEFAULT_MODEL` | AI model for content generation | `anthropic/claude-3-sonnet`, `openai/gpt-4` | `anthropic/claude-3-sonnet` |
 | `MAX_WORD_COUNT` | Maximum content length | Words per article | 5000 |
 | `DEFAULT_TONE` | Content writing tone | professional, casual, authoritative, friendly | professional |
@@ -73,6 +78,8 @@ services:
       - "8000:8000"
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - API_KEY=${API_KEY}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - DEFAULT_MODEL=anthropic/claude-3-sonnet
       - MAX_WORD_COUNT=5000
       - DATABASE_URL=postgresql://postgres:password@db:5432/seo_content

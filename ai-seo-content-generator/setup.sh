@@ -66,7 +66,7 @@ source venv/bin/activate
 
 # Upgrade pip
 print_status "Upgrading pip..."
-pip install --upgrade pip
+pip install --upgrade "pip>=26.1.2"
 
 # Install requirements
 print_status "Installing Python dependencies..."
@@ -97,8 +97,10 @@ fi
 
 # Check API keys in .env file
 if [ -f ".env" ]; then
-    if grep -q "your_openrouter_api_key_here" .env || grep -q "your_openai_api_key_here" .env; then
-        print_warning "API keys not configured yet. Edit .env file with your API keys."
+    if grep -q "replace-with-at-least-32-random-characters" .env; then
+        print_warning "The caller API key is not configured yet. Edit .env before starting the service."
+    elif grep -q "your_openrouter_api_key_here" .env && grep -q "your_openai_api_key_here" .env; then
+        print_warning "An AI provider key is not configured yet. Edit .env before starting the service."
     else
         print_status "API keys appear to be configured ✓"
     fi

@@ -5,20 +5,40 @@ Generates SEO-optimized content using OpenRouter/OpenAI
 """
 
 import os
-import asyncio
+import hmac
 import aiohttp
-from datetime import datetime
-from typing import List, Optional, Dict, Any
+from datetime import datetime, timezone
+from typing import Annotated, List, Optional, Dict, Any
 import json
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, HttpUrl
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, HttpUrl, StringConstraints
 import uvicorn
 
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+
+PLACEHOLDER_SECRET = "replace-with-at-least-32-random-characters"
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == PLACEHOLDER_SECRET:
+        raise RuntimeError(f"{name} must contain at least {minimum_length} non-placeholder characters")
+    return value
+
+
+API_KEY = required_secret("API_KEY", 32)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
+PROVIDER_PLACEHOLDERS = {"your_openrouter_api_key_here", "your_openai_api_key_here"}
+if not ({OPENROUTER_API_KEY, OPENAI_API_KEY} - {""} - PROVIDER_PLACEHOLDERS):
+    raise RuntimeError("At least one AI provider key must be configured")
+
+Keyword = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
 app = FastAPI(
     title="AI SEO Content Generator",
@@ -28,47 +48,55 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000"
+    ).split(",") if origin.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configuration
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 DEFAULT_MODEL = "anthropic/claude-3.5-sonnet"
 
+
+@app.middleware("http")
+async def authenticate(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path != "/health":
+        supplied_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(supplied_key, API_KEY):
+            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
+
 class BlogPostRequest(BaseModel):
-    topic: str
-    target_keywords: List[str]
-    word_count: int = 1000
-    tone: str = "professional"
-    target_audience: str = "general"
+    topic: str = Field(min_length=1, max_length=300)
+    target_keywords: List[Keyword] = Field(min_length=1, max_length=20)
+    word_count: int = Field(default=1000, ge=100, le=4000)
+    tone: str = Field(default="professional", min_length=1, max_length=50)
+    target_audience: str = Field(default="general", min_length=1, max_length=200)
     include_meta: bool = True
 
 class MetaDescriptionRequest(BaseModel):
-    page_title: str
-    main_keywords: List[str]
-    page_content_summary: str
-    max_length: int = 160
+    page_title: str = Field(min_length=1, max_length=300)
+    main_keywords: List[Keyword] = Field(min_length=1, max_length=20)
+    page_content_summary: str = Field(min_length=1, max_length=4000)
+    max_length: int = Field(default=160, ge=50, le=320)
 
 class KeywordAnalysisRequest(BaseModel):
-    primary_keyword: str
-    related_keywords: List[str] = []
-    industry: str
-    target_location: Optional[str] = None
+    primary_keyword: str = Field(min_length=1, max_length=200)
+    related_keywords: List[Keyword] = Field(default_factory=list, max_length=30)
+    industry: str = Field(min_length=1, max_length=200)
+    target_location: Optional[str] = Field(default=None, max_length=200)
 
 class CompetitorAnalysisRequest(BaseModel):
-    competitor_urls: List[HttpUrl]
-    target_keywords: List[str]
-    your_domain: Optional[str] = None
+    competitor_urls: List[HttpUrl] = Field(min_length=1, max_length=10)
+    target_keywords: List[Keyword] = Field(min_length=1, max_length=20)
+    your_domain: Optional[str] = Field(default=None, max_length=253)
 
 class ContentResponse(BaseModel):
     content: str
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
-    suggested_keywords: List[str] = []
+    suggested_keywords: List[str] = Field(default_factory=list)
     readability_score: Optional[float] = None
 
 class KeywordAnalysisResponse(BaseModel):
@@ -87,6 +115,8 @@ class CompetitorAnalysisResponse(BaseModel):
 
 async def call_ai_api(prompt: str, model: str = DEFAULT_MODEL) -> str:
     """Call OpenRouter or OpenAI API"""
+    if not OPENROUTER_API_KEY:
+        return await call_openai_api(prompt)
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
@@ -101,7 +131,7 @@ async def call_ai_api(prompt: str, model: str = DEFAULT_MODEL) -> str:
         "temperature": 0.7
     }
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
         try:
             async with session.post("https://openrouter.ai/api/v1/chat/completions", 
                                    headers=headers, json=payload) as response:
@@ -113,11 +143,11 @@ async def call_ai_api(prompt: str, model: str = DEFAULT_MODEL) -> str:
                     if OPENAI_API_KEY:
                         return await call_openai_api(prompt)
                     else:
-                        raise HTTPException(status_code=500, detail=f"API call failed: {response.status}")
+                        raise HTTPException(status_code=502, detail="AI provider request failed")
         except Exception as e:
             if OPENAI_API_KEY:
                 return await call_openai_api(prompt)
-            raise HTTPException(status_code=500, detail=f"AI API error: {str(e)}")
+            raise HTTPException(status_code=502, detail="AI provider request failed") from e
 
 async def call_openai_api(prompt: str) -> str:
     """Fallback to OpenAI API"""
@@ -133,14 +163,14 @@ async def call_openai_api(prompt: str) -> str:
         "temperature": 0.7
     }
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60)) as session:
         async with session.post("https://api.openai.com/v1/chat/completions", 
                                headers=headers, json=payload) as response:
             if response.status == 200:
                 data = await response.json()
                 return data["choices"][0]["message"]["content"]
             else:
-                raise HTTPException(status_code=500, detail=f"OpenAI API error: {response.status}")
+                raise HTTPException(status_code=502, detail="AI provider request failed")
 
 @app.get("/health")
 async def health_check():
@@ -148,7 +178,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "AI SEO Content Generator",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0"
     }
 
@@ -196,8 +226,10 @@ Please format the response as JSON:
                 suggested_keywords=request.target_keywords,
                 readability_score=8.0
             )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Content generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Content generation failed") from e
 
 @app.post("/generate/meta-description", response_model=Dict[str, str])
 async def generate_meta_description(request: MetaDescriptionRequest):
@@ -232,8 +264,10 @@ Return only the meta description text, no additional formatting."""
             "character_count": len(meta_description),
             "keywords_included": [kw for kw in request.main_keywords if kw.lower() in meta_description.lower()]
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Meta description generation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Meta description generation failed") from e
 
 @app.post("/analyze/keywords", response_model=KeywordAnalysisResponse)
 async def analyze_keywords(request: KeywordAnalysisRequest):
@@ -294,8 +328,10 @@ Format response as JSON:
                     f"{request.primary_keyword} vs alternatives"
                 ]
             )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Keyword analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Keyword analysis failed") from e
 
 @app.post("/analyze/competitors", response_model=CompetitorAnalysisResponse)
 async def analyze_competitors(request: CompetitorAnalysisRequest):
@@ -363,8 +399,10 @@ Format as JSON:
                     f"{request.target_keywords[0]} reviews"
                 ]
             )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Competitor analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Competitor analysis failed") from e
 
 @app.get("/stats")
 async def get_stats():
