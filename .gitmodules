@@ -1,0 +1,3 @@
+[submodule "ai-data-scraper"]
+	path = ai-data-scraper
+	url = https://github.com/DansiDanutz/ai-data-scraper.git
