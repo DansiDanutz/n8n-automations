@@ -25,6 +25,10 @@ mw n8n import ./src/workflow.json
 mw n8n config
 ```
 
+Create an n8n **Header Auth** credential named `Lead Webhook Auth` with header
+`X-Lead-Secret` and a random value. Attach it to the imported webhook node;
+callers must send this header before any OpenAI or email work begins.
+
 ## Requirements
 - MyWork-AI v2.3+
 - n8n instance (self-hosted or cloud)
@@ -43,6 +47,7 @@ Copy `.env.example` to `.env` and fill in your credentials:
 ```
 N8N_API_URL=http://localhost:5678
 N8N_API_KEY=your-key
+LEAD_WEBHOOK_SECRET=replace-with-a-random-webhook-secret
 OPENAI_API_KEY=your-key
 SMTP_HOST=smtp.gmail.com
 SLACK_WEBHOOK=https://hooks.slack.com/...

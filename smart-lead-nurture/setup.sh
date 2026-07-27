@@ -12,6 +12,7 @@ if [ ! -f .env ]; then
     cp .env.example .env
     echo "📝 Created .env from template. Please fill in your credentials:"
     echo "   - N8N_API_URL and N8N_API_KEY"
+    echo "   - LEAD_WEBHOOK_SECRET (configure as Lead Webhook Auth in n8n)"
     echo "   - OPENAI_API_KEY"
     echo "   - SMTP credentials"
     echo "   - (Optional) SLACK_WEBHOOK_URL"
@@ -62,5 +63,6 @@ fi
 echo ""
 echo "🎉 Setup complete! Test with:"
 echo "   curl -X POST ${N8N_API_URL}/webhook/lead-capture \\"
+echo "     -H 'X-Lead-Secret: YOUR_LEAD_WEBHOOK_SECRET' \\"
 echo "     -H 'Content-Type: application/json' \\"
 echo '     -d '"'"'{"name":"Test User","email":"test@example.com","company":"Acme","role":"CTO","source":"website","message":"Interested in your product"}'"'"
