@@ -2,9 +2,14 @@
 """Generate 10-15s product promo videos using fal.ai video models."""
 import os, sys, time, json, httpx
 
-FAL_KEY = "6e917d89-2e70-4bae-9569-940f0da1d27b:5556f0a5204af5fa291a3b0d380c4595"
-HEADERS = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
 OUTPUT_DIR = "/home/Memo1981/n8n-automations/product-videos"
+
+
+def fal_headers() -> dict[str, str]:
+    key = os.environ.get("FAL_KEY", "").strip()
+    if not key:
+        raise RuntimeError("FAL_KEY must be configured in the environment")
+    return {"Authorization": f"Key {key}", "Content-Type": "application/json"}
 
 PRODUCTS = [
     {
@@ -67,7 +72,7 @@ def submit_video(product: dict) -> dict:
     # Use minimax video model (good quality, reasonable cost)
     resp = httpx.post(
         "https://queue.fal.run/fal-ai/minimax/video/01/live",
-        headers=HEADERS,
+        headers=fal_headers(),
         json={"prompt": product["prompt"]},
         timeout=30,
     )
@@ -83,13 +88,13 @@ def submit_video(product: dict) -> dict:
 
 def check_status(job: dict) -> dict:
     """Check job status."""
-    resp = httpx.get(job["status_url"], headers=HEADERS, timeout=15)
+    resp = httpx.get(job["status_url"], headers=fal_headers(), timeout=15)
     return resp.json()
 
 
 def get_result(job: dict) -> dict:
     """Get completed result."""
-    resp = httpx.get(job["response_url"], headers=HEADERS, timeout=30)
+    resp = httpx.get(job["response_url"], headers=fal_headers(), timeout=30)
     return resp.json()
 
 

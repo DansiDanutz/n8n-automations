@@ -86,6 +86,9 @@ voice_docker = (ROOT / "voice-ai-platform/Dockerfile").read_text()
 voice_setup = (ROOT / "voice-ai-platform/setup.sh").read_text()
 smart_lead = (ROOT / "smart-lead-nurture/src/workflow.json").read_text()
 smart_lead_docker = (ROOT / "smart-lead-nurture/Dockerfile").read_text()
+video_helper = (ROOT / "tools/generate_video.sh").read_text()
+video_batch = source("product-videos/batch_veo2.py")
+video_generator = source("product-videos/generate_videos.py")
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -320,6 +323,14 @@ require(smart_lead, '"name": "Validate AI Score"', "smart lead workflow must con
 require(smart_lead, "escapeHtml", "smart lead workflow must HTML-escape email interpolations")
 require(smart_lead, "maxLengths", "smart lead workflow must bound lead inputs")
 require(smart_lead_docker, "FROM n8nio/n8n:2.31.6", "smart lead container must pin its n8n runtime")
+for secret_name in ("DEEPSEEK_API_KEY", "FAL_KEY", "GH_TOKEN"):
+    require(video_helper, f'required_env "{secret_name}"', f"video helper must require {secret_name} from the environment")
+if "sk-" in video_helper or "6e917d89-" in video_helper or ".credentials-dan.json" in video_helper:
+    failures.append("video helper must not embed or scrape operator credentials")
+for name, video_script in (("batch video helper", video_batch), ("video generator", video_generator)):
+    require(video_script, 'os.environ.get("FAL_KEY", "")', f"{name} must require FAL_KEY from the environment")
+    if "6e917d89-" in video_script:
+        failures.append(f"{name} must not embed operator credentials")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")

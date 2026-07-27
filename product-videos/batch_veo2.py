@@ -2,9 +2,14 @@
 """Batch generate product videos using fal.ai Veo2."""
 import os, time, json, httpx
 
-FAL_KEY = "6e917d89-2e70-4bae-9569-940f0da1d27b:5556f0a5204af5fa291a3b0d380c4595"
-HEADERS = {"Authorization": f"Key {FAL_KEY}", "Content-Type": "application/json"}
 OUT = "/home/Memo1981/n8n-automations/product-videos"
+
+
+def fal_headers() -> dict[str, str]:
+    key = os.environ.get("FAL_KEY", "").strip()
+    if not key:
+        raise RuntimeError("FAL_KEY must be configured in the environment")
+    return {"Authorization": f"Key {key}", "Content-Type": "application/json"}
 
 PRODUCTS = [
     ("voice-ai-platform", "Cinematic product demo video: A glowing microphone icon pulses with sound waves flowing into a modern dark-themed AI dashboard. Voice waveform visualization, conversation transcripts scrolling, analytics charts animating. Blue and purple neon accents, smooth camera movement, professional tech aesthetic."),
@@ -23,6 +28,7 @@ PRODUCTS = [
 ]
 
 def main():
+    headers = fal_headers()
     os.makedirs(OUT, exist_ok=True)
     jobs = []
 
@@ -30,7 +36,7 @@ def main():
     print(f"🎬 Submitting {len(PRODUCTS)} video jobs to fal.ai Veo2...\n")
     for slug, prompt in PRODUCTS:
         try:
-            r = httpx.post("https://queue.fal.run/fal-ai/veo2", headers=HEADERS,
+            r = httpx.post("https://queue.fal.run/fal-ai/veo2", headers=headers,
                           json={"prompt": prompt, "duration": "8s", "aspect_ratio": "16:9"}, timeout=30)
             r.raise_for_status()
             d = r.json()
@@ -53,7 +59,7 @@ def main():
             if j["slug"] in done:
                 continue
             try:
-                r = httpx.get(j["url"], headers=HEADERS, timeout=15)
+                r = httpx.get(j["url"], headers=headers, timeout=15)
                 d = r.json()
                 if "video" in d:
                     vurl = d["video"]["url"] if isinstance(d["video"], dict) else d["video"]
