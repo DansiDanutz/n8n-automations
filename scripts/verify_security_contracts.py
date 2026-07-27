@@ -30,6 +30,7 @@ social = source("social-media-auto-poster/main.py")
 invoice = source("invoice-generator-api/main.py")
 documents = source("ai-document-summarizer/main.py")
 support = source("ai-customer-support-bot/main.py")
+seo = source("ai-seo-content-generator/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -70,6 +71,9 @@ documents_env = (ROOT / "ai-document-summarizer/.env.example").read_text()
 documents_requirements = (ROOT / "ai-document-summarizer/requirements.txt").read_text()
 documents_docker = (ROOT / "ai-document-summarizer/Dockerfile").read_text()
 documents_setup = (ROOT / "ai-document-summarizer/setup.sh").read_text()
+seo_env = (ROOT / "ai-seo-content-generator/.env.example").read_text()
+seo_requirements = (ROOT / "ai-seo-content-generator/requirements.txt").read_text()
+seo_docker = (ROOT / "ai-seo-content-generator/Dockerfile").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -253,6 +257,28 @@ for expected in (
     require(documents_requirements, expected, f"document summarizer must pin audited dependency {expected}")
 require(documents_docker, "pip>=26.1.2", "document container must upgrade pip past PYSEC-2026-196")
 require(documents_setup, "pip>=26.1.2", "document setup must upgrade pip past PYSEC-2026-196")
+require(seo, 'required_secret("API_KEY", 32)', "SEO generator must require a strong API key")
+require(seo, 'request.url.path != "/health"', "SEO generator must authenticate non-health routes")
+require(seo, 'request.headers.get("X-API-Key", "")', "SEO generator must read X-API-Key")
+require(seo, "hmac.compare_digest", "SEO API-key checks must be timing safe")
+require(seo, "At least one AI provider key must be configured", "SEO generator must fail closed without an AI provider")
+require(seo, "ClientTimeout(total=60)", "SEO upstream calls must have a total timeout")
+if 'allow_origins=["*"]' in seo:
+    failures.append("SEO generator must not use wildcard credentialed CORS")
+require(seo_env, "API_KEY=replace-with-at-least-32-random-characters", "SEO template must require a strong API key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "aiohttp==3.14.3",
+    "pydantic==2.13.4",
+    "python-dotenv==1.2.2",
+):
+    require(seo_requirements, expected, f"SEO generator must pin audited dependency {expected}")
+for unused in ("python-multipart", "requests", "beautifulsoup4", "lxml"):
+    if unused in seo_requirements:
+        failures.append(f"SEO generator must remove unused dependency {unused}")
+require(seo_docker, "pip>=26.1.2", "SEO container must upgrade pip past PYSEC-2026-196")
+require(seo_docker, "urllib.request", "SEO container health check must use an available client")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")
