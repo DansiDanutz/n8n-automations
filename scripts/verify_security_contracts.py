@@ -103,6 +103,8 @@ require(limiter_identity, "trusted_proxy_hops <= 0", "rate limiter must distrust
 require(limiter_identity, "ip_address(candidate)", "rate limiter must validate the selected forwarded IP address")
 require(limiter, "Invalid forwarded client address", "rate limiter must reject malformed trusted-proxy identities")
 require(limiter_identity, "ip_network(cidr, strict=False)", "rate limiter must authenticate direct proxy peers by CIDR")
+require(limiter_identity, "intervening_proxies", "rate limiter must authenticate every configured proxy hop")
+require(limiter_identity, "except ValueError", "rate limiter must fail closed on malformed proxy configuration")
 if 'os.getenv("ADMIN_API_KEY", "admin-secret-key")' in limiter:
     failures.append("rate limiter must not ship a default admin credential")
 require(cron_env, "API_KEY=replace-with-at-least-32-random-characters", "cron environment template must require a strong key")

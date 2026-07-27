@@ -37,7 +37,7 @@ class ClientIdentityTests(unittest.TestCase):
                 "10.0.0.5",
                 "198.51.100.7, 192.0.2.12",
                 trusted_proxy_hops=2,
-                trusted_proxy_cidrs=("10.0.0.0/8",),
+                trusted_proxy_cidrs=("10.0.0.0/8", "192.0.2.0/24"),
             ),
             "198.51.100.7",
         )
@@ -74,6 +74,27 @@ class ClientIdentityTests(unittest.TestCase):
                 trusted_proxy_cidrs=("10.0.0.0/8",),
             ),
             "203.0.113.9",
+        )
+
+    def test_every_intervening_proxy_must_be_trusted(self):
+        self.assertIsNone(
+            client_identity.resolve_client_ip(
+                "10.0.0.5",
+                "198.51.100.7, 203.0.113.9",
+                trusted_proxy_hops=2,
+                trusted_proxy_cidrs=("10.0.0.0/8", "192.0.2.0/24"),
+            )
+        )
+
+    def test_malformed_proxy_cidrs_fail_closed_without_crashing(self):
+        self.assertEqual(
+            client_identity.resolve_client_ip(
+                "10.0.0.5",
+                "198.51.100.7",
+                trusted_proxy_hops=1,
+                trusted_proxy_cidrs=("not-a-network",),
+            ),
+            "10.0.0.5",
         )
 
 
