@@ -9,14 +9,16 @@ import os
 import io
 import json
 import hashlib
+import hmac
 import sqlite3
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Query
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 import uvicorn
 from dotenv import load_dotenv
 
@@ -28,6 +30,16 @@ MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE_MB", "10")) * 1024 * 1024
 DB_PATH = os.getenv("DB_PATH", "./summaries.db")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
+
+
+def required_secret(name: str, minimum_length: int) -> str:
+    value = os.getenv(name, "").strip()
+    if len(value) < minimum_length or value == "replace-with-at-least-32-random-characters":
+        raise RuntimeError(f"{name} must be at least {minimum_length} characters")
+    return value
+
+
+api_key = required_secret("API_KEY", 32)
 
 # ─── OpenAI Client ───
 try:
@@ -51,14 +63,14 @@ def parse_csv(content: bytes) -> str:
 
 def parse_pdf(content: bytes) -> str:
     try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(content))
         text = ""
         for page in reader.pages[:50]:  # Max 50 pages
             text += page.extract_text() or ""
         return text
     except ImportError:
-        return "[PDF parsing requires PyPDF2: pip install PyPDF2]"
+        return "[PDF parsing requires pypdf: pip install pypdf]"
 
 def parse_docx(content: bytes) -> str:
     try:
@@ -164,7 +176,7 @@ def ai_answer(text: str, question: str) -> str:
 
 # ─── Models ───
 class QuestionRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=4000)
 
 # ─── App ───
 app = FastAPI(
@@ -172,7 +184,23 @@ app = FastAPI(
     description="Upload documents and get AI-powered summaries, key points, action items, and Q&A.",
     version="1.0.0",
 )
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def authenticate_documents(request: Request, call_next):
+    if request.method != "OPTIONS" and request.url.path not in {"/", "/health"}:
+        provided_key = request.headers.get("X-API-Key", "")
+        if not hmac.compare_digest(provided_key, api_key):
+            return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+    return await call_next(request)
+
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
+app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_methods=["*"], allow_headers=["*"])
 
 @app.get("/")
 async def root():
@@ -183,23 +211,23 @@ async def root():
         "status": "running",
         "supported_formats": [".txt", ".csv", ".pdf", ".docx"],
         "max_file_size_mb": MAX_FILE_SIZE // (1024 * 1024),
-        "ai_configured": client is not None,
     }
 
 @app.get("/health")
 async def health():
     """Health check."""
-    return {"status": "healthy", "ai_ready": client is not None}
+    return {"status": "healthy"}
 
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     """Upload a document for processing."""
-    content = await file.read()
+    content = await file.read(MAX_FILE_SIZE + 1)
     
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(400, f"File too large. Max: {MAX_FILE_SIZE // (1024*1024)}MB")
     
-    ext = Path(file.filename or "").suffix.lower()
+    original_name = Path((file.filename or "upload").replace("\\", "/")).name
+    ext = Path(original_name).suffix.lower()
     parser = PARSERS.get(ext) or PARSERS.get(file.content_type)
     
     if not parser:
@@ -209,29 +237,30 @@ async def upload_document(file: UploadFile = File(...)):
     if not text.strip():
         raise HTTPException(400, "Could not extract text from document")
     
-    file_hash = hashlib.md5(content).hexdigest()
+    file_hash = hashlib.sha256(content).hexdigest()
     word_count = len(text.split())
     
     conn = sqlite3.connect(DB_PATH)
     try:
-        conn.execute(
-            "INSERT OR IGNORE INTO documents (filename, file_hash, file_size, content_preview, word_count) VALUES (?, ?, ?, ?, ?)",
-            (file.filename, file_hash, len(content), text[:500], word_count)
+        cursor = conn.execute(
+            "INSERT INTO documents (filename, file_hash, file_size, content_preview, word_count) VALUES (?, ?, ?, ?, ?)",
+            (original_name, file_hash, len(content), text[:500], word_count)
         )
         conn.commit()
-        cursor = conn.execute("SELECT id FROM documents WHERE file_hash = ?", (file_hash,))
-        doc_id = cursor.fetchone()[0]
+        doc_id = cursor.lastrowid
+    except sqlite3.IntegrityError:
+        raise HTTPException(409, "Document content already uploaded")
     finally:
         conn.close()
     
     # Save file
-    save_path = os.path.join(UPLOAD_DIR, f"{doc_id}_{file.filename}")
-    with open(save_path, "wb") as f:
+    save_path = Path(UPLOAD_DIR) / f"{doc_id}{ext}"
+    with save_path.open("wb") as f:
         f.write(content)
     
     return {
         "document_id": doc_id,
-        "filename": file.filename,
+        "filename": original_name,
         "file_size_bytes": len(content),
         "word_count": word_count,
         "preview": text[:300] + "..." if len(text) > 300 else text,
@@ -254,7 +283,7 @@ async def summarize_document(
     filename, content, word_count = row
     
     # Get full text from file
-    files = list(Path(UPLOAD_DIR).glob(f"{document_id}_*"))
+    files = list(Path(UPLOAD_DIR).glob(f"{document_id}.*"))
     if files:
         ext = files[0].suffix.lower()
         parser = PARSERS.get(ext, parse_txt)
@@ -289,7 +318,7 @@ async def ask_question(document_id: int, req: QuestionRequest):
         conn.close()
         raise HTTPException(404, "Document not found")
     
-    files = list(Path(UPLOAD_DIR).glob(f"{document_id}_*"))
+    files = list(Path(UPLOAD_DIR).glob(f"{document_id}.*"))
     if not files:
         conn.close()
         raise HTTPException(404, "Document file not found")
@@ -361,7 +390,7 @@ async def delete_document(document_id: int):
     conn.commit()
     conn.close()
     
-    for f in Path(UPLOAD_DIR).glob(f"{document_id}_*"):
+    for f in Path(UPLOAD_DIR).glob(f"{document_id}.*"):
         f.unlink()
     
     return {"status": "deleted", "document_id": document_id}

@@ -42,9 +42,12 @@ python3 main.py  # or: node index.js
 Edit `.env` file:
 
 ```env
-API_KEY=your-api-key
+API_KEY=replace-with-at-least-32-random-characters
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 PORT=8000
 ```
+
+All upload, document, AI, and statistics endpoints require `X-API-Key: $API_KEY`.
 
 ## 🐳 Docker
 
