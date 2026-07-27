@@ -31,6 +31,7 @@ invoice = source("invoice-generator-api/main.py")
 documents = source("ai-document-summarizer/main.py")
 support = source("ai-customer-support-bot/main.py")
 seo = source("ai-seo-content-generator/main.py")
+voice = source("voice-ai-platform/main.py")
 cron_env = (ROOT / "cron-job-dashboard/.env.example").read_text()
 limiter_env = (ROOT / "api-rate-limiter/.env.example").read_text()
 cron_requirements = (ROOT / "cron-job-dashboard/requirements.txt").read_text()
@@ -74,6 +75,10 @@ documents_setup = (ROOT / "ai-document-summarizer/setup.sh").read_text()
 seo_env = (ROOT / "ai-seo-content-generator/.env.example").read_text()
 seo_requirements = (ROOT / "ai-seo-content-generator/requirements.txt").read_text()
 seo_docker = (ROOT / "ai-seo-content-generator/Dockerfile").read_text()
+voice_env = (ROOT / "voice-ai-platform/.env.example").read_text()
+voice_requirements = (ROOT / "voice-ai-platform/requirements.txt").read_text()
+voice_docker = (ROOT / "voice-ai-platform/Dockerfile").read_text()
+voice_setup = (ROOT / "voice-ai-platform/setup.sh").read_text()
 
 require(cron, 'required_secret("API_KEY", 32)', "cron dashboard must require a strong API key")
 require(cron, 'request.url.path not in {"/", "/health"}', "cron dashboard must authenticate non-public routes")
@@ -279,6 +284,29 @@ for unused in ("python-multipart", "requests", "beautifulsoup4", "lxml"):
         failures.append(f"SEO generator must remove unused dependency {unused}")
 require(seo_docker, "pip>=26.1.2", "SEO container must upgrade pip past PYSEC-2026-196")
 require(seo_docker, "urllib.request", "SEO container health check must use an available client")
+require(voice, 'required_secret("BOOTSTRAP_API_KEY", 32)', "voice tenant bootstrap must require a strong operator key")
+require(voice, 'required_secret("SECRET_KEY", 32)', "voice public-talk tokens must use a strong signing key")
+require(voice, "create_talk_token", "voice public talk must use signed assistant tokens")
+require(voice, "enforce_talk_rate_limit", "voice public talk must be rate limited before provider calls")
+require(voice, "Conversation.assistant_id == assistant.id", "voice conversations must be scoped to the requested assistant")
+require(voice, "html.escape", "voice share pages must escape database-controlled HTML")
+require(voice, "MAX_AUDIO_BYTES", "voice uploads must be bounded")
+if 'CORS_ORIGINS", "*"' in voice:
+    failures.append("voice platform must not default credentialed CORS to wildcard")
+require(voice_env, "BOOTSTRAP_API_KEY=replace-with-at-least-32-random-characters", "voice template must document bootstrap authentication")
+require(voice_env, "SECRET_KEY=replace-with-at-least-32-random-characters", "voice template must document a strong signing key")
+for expected in (
+    "fastapi==0.140.0",
+    "uvicorn[standard]==0.51.0",
+    "sqlalchemy==2.0.51",
+    "httpx==0.28.1",
+    "python-multipart==0.0.32",
+    "pydantic==2.13.4",
+    "python-dotenv==1.2.2",
+):
+    require(voice_requirements, expected, f"voice platform must pin audited dependency {expected}")
+require(voice_docker, "pip>=26.1.2", "voice container must upgrade audited pip")
+require(voice_setup, "pip>=26.1.2", "voice setup must upgrade audited pip")
 for name, requirements in (("cron dashboard", cron_requirements), ("rate limiter", limiter_requirements)):
     require(requirements, "fastapi==0.140.0", f"{name} must use the audited FastAPI baseline")
     require(requirements, "uvicorn[standard]==0.51.0", f"{name} must use the audited Uvicorn baseline")

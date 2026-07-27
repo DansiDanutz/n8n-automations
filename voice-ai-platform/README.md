@@ -46,6 +46,7 @@ docker-compose up -d
 ```bash
 # Create account
 curl -X POST http://localhost:8000/api/tenants \
+  -H 'X-Bootstrap-Key: your-operator-bootstrap-key' \
   -H 'Content-Type: application/json' \
   -d '{"name":"My Company","email":"me@example.com"}'
 # Returns: {"api_key": "vai_xxx..."}
@@ -71,12 +72,12 @@ curl -X POST http://localhost:8000/api/assistants \
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/api/tenants` | - | Create account |
+| POST | `/api/tenants` | Bootstrap Key | Create account |
 | POST | `/api/assistants` | API Key | Create assistant |
 | GET | `/api/assistants` | API Key | List assistants |
 | GET | `/talk/{slug}` | Public | Voice chat page |
-| POST | `/api/talk/{slug}/voice` | Public | Voice chat API |
-| POST | `/api/talk/{slug}/text` | Public | Text chat API |
+| POST | `/api/talk/{slug}/voice` | Signed Talk Token | Voice chat API |
+| POST | `/api/talk/{slug}/text` | Signed Talk Token | Text chat API |
 | GET | `/api/analytics/conversations` | API Key | List conversations |
 | GET | `/api/analytics/stats` | API Key | Dashboard stats |
 
@@ -84,7 +85,7 @@ curl -X POST http://localhost:8000/api/assistants \
 
 - **Backend:** FastAPI + SQLAlchemy
 - **Voice:** ElevenLabs (STT + TTS)
-- **AI:** LiteLLM (100+ models) or OpenAI/DeepSeek direct
+- **AI:** OpenAI or DeepSeek direct
 - **Database:** PostgreSQL (or SQLite for dev)
 - **Deploy:** Docker, Railway, Render, VPS
 

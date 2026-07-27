@@ -20,6 +20,7 @@ source venv/bin/activate
 
 # Install dependencies
 echo "📦 Installing dependencies..."
+pip install --upgrade "pip>=26.1.2" -q
 pip install -r requirements.txt -q
 
 # Setup env
@@ -30,6 +31,7 @@ if [ ! -f ".env" ]; then
     echo "⚠️  IMPORTANT: Edit .env and add your API keys:"
     echo "   - ELEVENLABS_API_KEY (required for voice)"
     echo "   - OPENAI_API_KEY or DEEPSEEK_API_KEY (required for AI)"
+    echo "   - BOOTSTRAP_API_KEY and SECRET_KEY (32+ random characters)"
     echo "   - DATABASE_URL (optional, defaults to SQLite)"
     echo ""
 fi
@@ -46,7 +48,7 @@ echo "   source venv/bin/activate"
 echo "   python3 main.py"
 echo ""
 echo "📋 Then:"
-echo "   1. Create a tenant:  curl -X POST http://localhost:8000/api/tenants -H 'Content-Type: application/json' -d '{\"name\":\"My Company\",\"email\":\"me@example.com\"}'"
+echo "   1. Create a tenant:  curl -X POST http://localhost:8000/api/tenants -H 'X-Bootstrap-Key: YOUR_BOOTSTRAP_KEY' -H 'Content-Type: application/json' -d '{\"name\":\"My Company\",\"email\":\"me@example.com\"}'"
 echo "   2. Create assistant: curl -X POST http://localhost:8000/api/assistants -H 'X-API-Key: YOUR_KEY' -H 'Content-Type: application/json' -d '{\"name\":\"Support Bot\"}'"
 echo "   3. Share the link:   http://localhost:8000/talk/YOUR_SLUG"
 echo ""
