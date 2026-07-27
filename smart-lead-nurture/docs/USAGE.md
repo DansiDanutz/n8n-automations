@@ -4,6 +4,8 @@
 
 ### 1. Lead Capture
 Send a POST request to the webhook with lead data:
+Include the `X-Lead-Secret` header configured in the n8n `Lead Webhook Auth`
+credential. Requests without it are rejected before scoring or email delivery.
 ```json
 {
   "name": "Jane Smith",
