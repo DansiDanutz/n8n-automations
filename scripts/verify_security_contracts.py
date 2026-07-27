@@ -20,6 +20,11 @@ def require(value: str, expected: str, message: str) -> None:
         failures.append(message)
 
 
+gitmodules = (ROOT / ".gitmodules").read_text()
+require(gitmodules, '[submodule "ai-data-scraper"]', "scraper gitlink must declare its submodule")
+require(gitmodules, "url = https://github.com/DansiDanutz/ai-data-scraper.git", "scraper submodule must resolve to its canonical repository")
+
+
 cron = source("cron-job-dashboard/main.py")
 limiter = source("api-rate-limiter/main.py")
 purchase = source("purchase-webhook/main.py")
