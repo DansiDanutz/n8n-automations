@@ -27,6 +27,7 @@ require(gitmodules, "url = https://github.com/DansiDanutz/ai-data-scraper.git", 
 
 cron = source("cron-job-dashboard/main.py")
 limiter = source("api-rate-limiter/main.py")
+limiter_identity = source("api-rate-limiter/client_identity.py")
 purchase = source("purchase-webhook/main.py")
 email_main = source("ai-email-assistant/backend/main.py")
 email_auth = source("ai-email-assistant/backend/services/auth_service.py")
@@ -97,10 +98,14 @@ require(cron, "hmac.compare_digest", "cron dashboard API-key checks must be timi
 
 require(limiter, 'required_secret("ADMIN_API_KEY", 32)', "rate limiter must reject missing or weak admin keys")
 require(limiter, "hmac.compare_digest", "rate limiter admin-key checks must be timing safe")
+require(limiter, "resolve_client_ip", "rate limiter must resolve client IPs through the trusted-proxy policy")
+require(limiter_identity, "trusted_proxy_hops <= 0", "rate limiter must distrust forwarding headers by default")
+require(limiter_identity, "ip_address(value)", "rate limiter must validate forwarded IP addresses")
 if 'os.getenv("ADMIN_API_KEY", "admin-secret-key")' in limiter:
     failures.append("rate limiter must not ship a default admin credential")
 require(cron_env, "API_KEY=replace-with-at-least-32-random-characters", "cron environment template must require a strong key")
 require(limiter_env, "ADMIN_API_KEY=replace-with-at-least-32-random-characters", "limiter environment template must require a strong key")
+require(limiter_env, "TRUSTED_PROXY_HOPS=0", "limiter template must distrust forwarding headers by default")
 require(purchase, 'required_secret("STRIPE_WEBHOOK_SECRET", 16)', "purchase webhook must fail closed without a signing secret")
 require(purchase, 'required_secret("GITHUB_TOKEN", 20)', "purchase webhook must fail closed without a GitHub token")
 require(purchase, 'required_secret("MANAGEMENT_API_KEY", 32)', "purchase records must require a management key")

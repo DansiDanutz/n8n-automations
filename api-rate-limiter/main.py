@@ -22,6 +22,8 @@ from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
 
+from client_identity import resolve_client_ip
+
 load_dotenv()
 
 # ─── Configuration ───
@@ -31,6 +33,7 @@ DEFAULT_WINDOW_SECONDS = int(os.getenv("DEFAULT_WINDOW_SECONDS", "60"))
 REDIS_URL = os.getenv("REDIS_URL", "")
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 API_KEY_HEADER = os.getenv("API_KEY_HEADER", "X-API-Key")
+TRUSTED_PROXY_HOPS = max(0, int(os.getenv("TRUSTED_PROXY_HOPS", "0")))
 
 
 def required_secret(name: str, minimum_length: int = 1) -> str:
@@ -146,11 +149,13 @@ def get_client_key(request: Request) -> str:
     if api_key:
         return f"key:{hashlib.md5(api_key.encode()).hexdigest()[:12]}"
     
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return f"ip:{forwarded.split(',')[0].strip()}"
-    
-    return f"ip:{request.client.host}"
+    peer_ip = request.client.host
+    client_ip = resolve_client_ip(
+        peer_ip,
+        request.headers.get("X-Forwarded-For"),
+        trusted_proxy_hops=TRUSTED_PROXY_HOPS,
+    )
+    return f"ip:{client_ip}"
 
 def get_rule_for_endpoint(endpoint: str) -> dict:
     """Find the matching rate limit rule for an endpoint."""
