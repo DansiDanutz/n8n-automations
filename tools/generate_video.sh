@@ -4,6 +4,7 @@
 # =============================================================================
 # Usage: bash tools/generate_video.sh <product-dir>
 # Example: bash tools/generate_video.sh voice-ai-platform
+# Requires: DEEPSEEK_API_KEY, FAL_KEY, and GH_TOKEN environment variables
 # =============================================================================
 set -e
 
@@ -14,15 +15,17 @@ if [ -z "$PRODUCT_DIR" ] || [ ! -d "$PRODUCT_DIR" ]; then
     exit 1
 fi
 
-# Load credentials
-CREDS_DIR="$HOME/.openclaw/workspace"
-FAL_KEY="6e917d89-2e70-4bae-9569-940f0da1d27b:5556f0a5204af5fa291a3b0d380c4595"
-GH_TOKEN=$(cat "$CREDS_DIR/.credentials-dan.json" 2>/dev/null | grep -o 'ghp_[a-zA-Z0-9]*' || echo "")
-if [ -z "$GH_TOKEN" ]; then
-    echo "❌ GitHub token not found. Set GH_TOKEN env var or add to .credentials-dan.json"
-    exit 1
-fi
-DEEPSEEK_KEY="sk-909741cb4e0943c994d22103f76b87d0"
+required_env() {
+    local name="$1"
+    if [ -z "${!name:-}" ]; then
+        echo "❌ Required environment variable is missing: $name"
+        exit 1
+    fi
+}
+
+required_env "DEEPSEEK_API_KEY"
+required_env "FAL_KEY"
+required_env "GH_TOKEN"
 RELEASE_ID=287025925
 GH_REPO="DansiDanutz/MyWork-AI"
 
@@ -47,27 +50,21 @@ echo "  Name: $NAME"
 
 # Step 2: Generate cinematic prompt with AI
 echo "🤖 Step 1/5: Generating video prompt..."
+DEEPSEEK_PAYLOAD=$(python3 -c 'import json,sys; print(json.dumps({"model":"deepseek-chat","messages":[{"role":"system","content":"You create cinematic video prompts for AI product demos. Output ONLY the prompt text, nothing else. Make it vivid and professional: dark theme UI, smooth animations, data flowing, tech aesthetic. 2-3 sentences max."},{"role":"user","content":f"Create a video prompt for: {sys.argv[1]} - {sys.argv[2]}"}],"max_tokens":200,"temperature":0.8}))' "$NAME" "$DESC")
 PROMPT=$(curl -s -X POST "https://api.deepseek.com/chat/completions" \
-    -H "Authorization: Bearer $DEEPSEEK_KEY" \
+    -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
     -H "Content-Type: application/json" \
-    -d "{
-        \"model\": \"deepseek-chat\",
-        \"messages\": [
-            {\"role\": \"system\", \"content\": \"You create cinematic video prompts for AI product demos. Output ONLY the prompt text, nothing else. Make it vivid and professional: dark theme UI, smooth animations, data flowing, tech aesthetic. 2-3 sentences max.\"},
-            {\"role\": \"user\", \"content\": \"Create a video prompt for: $NAME - $DESC\"}
-        ],
-        \"max_tokens\": 200,
-        \"temperature\": 0.8
-    }" | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])")
+    --data "$DEEPSEEK_PAYLOAD" | python3 -c "import sys,json; print(json.load(sys.stdin)['choices'][0]['message']['content'])")
 
 echo "  Prompt: ${PROMPT:0:100}..."
 
 # Step 3: Submit to fal.ai Veo2
 echo "🎥 Step 2/5: Submitting to fal.ai Veo2..."
+FAL_PAYLOAD=$(python3 -c 'import json,sys; print(json.dumps({"prompt":sys.argv[1],"duration":"8s","aspect_ratio":"16:9"}))' "$PROMPT")
 SUBMIT=$(curl -s -X POST "https://queue.fal.run/fal-ai/veo2" \
     -H "Authorization: Key $FAL_KEY" \
     -H "Content-Type: application/json" \
-    -d "{\"prompt\": $(python3 -c "import json; print(json.dumps('$PROMPT'))"), \"duration\": \"8s\", \"aspect_ratio\": \"16:9\"}")
+    --data "$FAL_PAYLOAD")
 
 REQUEST_ID=$(echo "$SUBMIT" | python3 -c "import sys,json; print(json.load(sys.stdin)['request_id'])")
 RESPONSE_URL="https://queue.fal.run/fal-ai/veo2/requests/$REQUEST_ID"
