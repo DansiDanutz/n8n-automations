@@ -22,6 +22,8 @@ from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
 
+from client_identity import resolve_client_ip
+
 load_dotenv()
 
 # ─── Configuration ───
@@ -31,6 +33,12 @@ DEFAULT_WINDOW_SECONDS = int(os.getenv("DEFAULT_WINDOW_SECONDS", "60"))
 REDIS_URL = os.getenv("REDIS_URL", "")
 ALERT_WEBHOOK_URL = os.getenv("ALERT_WEBHOOK_URL", "")
 API_KEY_HEADER = os.getenv("API_KEY_HEADER", "X-API-Key")
+TRUSTED_PROXY_HOPS = max(0, int(os.getenv("TRUSTED_PROXY_HOPS", "0")))
+TRUSTED_PROXY_CIDRS = tuple(
+    value.strip()
+    for value in os.getenv("TRUSTED_PROXY_CIDRS", "").split(",")
+    if value.strip()
+)
 
 
 def required_secret(name: str, minimum_length: int = 1) -> str:
@@ -146,11 +154,16 @@ def get_client_key(request: Request) -> str:
     if api_key:
         return f"key:{hashlib.md5(api_key.encode()).hexdigest()[:12]}"
     
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return f"ip:{forwarded.split(',')[0].strip()}"
-    
-    return f"ip:{request.client.host}"
+    peer_ip = request.client.host
+    client_ip = resolve_client_ip(
+        peer_ip,
+        request.headers.get("X-Forwarded-For"),
+        trusted_proxy_hops=TRUSTED_PROXY_HOPS,
+        trusted_proxy_cidrs=TRUSTED_PROXY_CIDRS,
+    )
+    if client_ip is None:
+        raise HTTPException(status_code=400, detail="Invalid forwarded client address")
+    return f"ip:{client_ip}"
 
 def get_rule_for_endpoint(endpoint: str) -> dict:
     """Find the matching rate limit rule for an endpoint."""
@@ -409,4 +422,4 @@ if __name__ == "__main__":
     print(f"   Default limit: {DEFAULT_RATE_LIMIT} requests per {DEFAULT_WINDOW_SECONDS}s")
     print(f"   Dashboard: http://localhost:{PORT}/dashboard")
     print(f"   API docs: http://localhost:{PORT}/docs")
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=PORT, proxy_headers=False)
