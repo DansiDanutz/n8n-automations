@@ -161,6 +161,8 @@ def get_client_key(request: Request) -> str:
         trusted_proxy_hops=TRUSTED_PROXY_HOPS,
         trusted_proxy_cidrs=TRUSTED_PROXY_CIDRS,
     )
+    if client_ip is None:
+        raise HTTPException(status_code=400, detail="Invalid forwarded client address")
     return f"ip:{client_ip}"
 
 def get_rule_for_endpoint(endpoint: str) -> dict:

@@ -100,7 +100,8 @@ require(limiter, 'required_secret("ADMIN_API_KEY", 32)', "rate limiter must reje
 require(limiter, "hmac.compare_digest", "rate limiter admin-key checks must be timing safe")
 require(limiter, "resolve_client_ip", "rate limiter must resolve client IPs through the trusted-proxy policy")
 require(limiter_identity, "trusted_proxy_hops <= 0", "rate limiter must distrust forwarding headers by default")
-require(limiter_identity, "ip_address(value)", "rate limiter must validate forwarded IP addresses")
+require(limiter_identity, "ip_address(candidate)", "rate limiter must validate the selected forwarded IP address")
+require(limiter, "Invalid forwarded client address", "rate limiter must reject malformed trusted-proxy identities")
 require(limiter_identity, "ip_network(cidr, strict=False)", "rate limiter must authenticate direct proxy peers by CIDR")
 if 'os.getenv("ADMIN_API_KEY", "admin-secret-key")' in limiter:
     failures.append("rate limiter must not ship a default admin credential")

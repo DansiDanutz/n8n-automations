@@ -10,7 +10,7 @@ def resolve_client_ip(
     *,
     trusted_proxy_hops: int,
     trusted_proxy_cidrs: Collection[str],
-) -> str:
+) -> Optional[str]:
     """Return a validated client IP without trusting arbitrary forwarding data."""
     if trusted_proxy_hops <= 0 or not forwarded_for:
         return peer_ip
@@ -27,11 +27,11 @@ def resolve_client_ip(
 
     forwarded = [value.strip() for value in forwarded_for.split(",")]
     if len(forwarded) < trusted_proxy_hops or any(not value for value in forwarded):
-        return peer_ip
+        return None
+    candidate = forwarded[-trusted_proxy_hops]
     try:
-        for value in forwarded:
-            ip_address(value)
+        ip_address(candidate)
     except ValueError:
-        return peer_ip
+        return None
 
-    return forwarded[-trusted_proxy_hops]
+    return candidate

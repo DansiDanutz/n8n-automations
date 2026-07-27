@@ -42,18 +42,28 @@ class ClientIdentityTests(unittest.TestCase):
             "198.51.100.7",
         )
 
-    def test_invalid_forwarded_values_fall_back_to_socket_peer(self):
-        for forwarded in ("attacker.example", "unknown", "", "198.51.100.7, bad"):
+    def test_invalid_selected_forwarded_values_are_rejected(self):
+        for forwarded in ("attacker.example", "unknown", "198.51.100.7, bad"):
             with self.subTest(forwarded=forwarded):
-                self.assertEqual(
+                self.assertIsNone(
                     client_identity.resolve_client_ip(
-                        "203.0.113.9",
+                        "10.0.0.5",
                         forwarded,
                         trusted_proxy_hops=1,
                         trusted_proxy_cidrs=("10.0.0.0/8",),
-                    ),
-                    "203.0.113.9",
+                    )
                 )
+
+    def test_untrusted_prefix_does_not_change_selected_proxy_identity(self):
+        self.assertEqual(
+            client_identity.resolve_client_ip(
+                "10.0.0.5",
+                "bad, 198.51.100.7",
+                trusted_proxy_hops=1,
+                trusted_proxy_cidrs=("10.0.0.0/8",),
+            ),
+            "198.51.100.7",
+        )
 
     def test_direct_clients_cannot_opt_into_forwarded_identity(self):
         self.assertEqual(
